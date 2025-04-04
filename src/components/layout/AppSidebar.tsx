@@ -42,48 +42,48 @@ const AppSidebar: React.FC = () => {
       <SidebarGroupLabel>Artist Portal</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          <SidebarMenuItem active={isActive(`${basePath}/dashboard`)}>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive(`${basePath}/dashboard`)}>
               <Link to={`${basePath}/dashboard`}>
                 <Home size={18} />
                 <span>Dashboard</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem active={isActive(`${basePath}/profile`)}>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive(`${basePath}/profile`)}>
               <Link to={`${basePath}/profile`}>
                 <User size={18} />
                 <span>My Profile</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem active={isActive(`${basePath}/audios`)}>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive(`${basePath}/audios`)}>
               <Link to={`${basePath}/audios`}>
                 <Music size={18} />
                 <span>My Audios</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem active={isActive(`${basePath}/copyrights`)}>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive(`${basePath}/copyrights`)}>
               <Link to={`${basePath}/copyrights`}>
                 <FileCheck size={18} />
                 <span>Copyrights</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem active={isActive(`${basePath}/licenses`)}>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive(`${basePath}/licenses`)}>
               <Link to={`${basePath}/licenses`}>
                 <FileText size={18} />
                 <span>Licenses</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem active={isActive(`${basePath}/payments`)}>
-            <SidebarMenuButton asChild>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive(`${basePath}/payments`)}>
               <Link to={`${basePath}/payments`}>
                 <CreditCard size={18} />
                 <span>Payments</span>
@@ -101,24 +101,24 @@ const AppSidebar: React.FC = () => {
         <SidebarGroupLabel>Administration</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem active={isActive(`${basePath}/dashboard`)}>
-              <SidebarMenuButton asChild>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive(`${basePath}/dashboard`)}>
                 <Link to={`${basePath}/dashboard`}>
                   <Home size={18} />
                   <span>Dashboard</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem active={isActive(`${basePath}/artists`)}>
-              <SidebarMenuButton asChild>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive(`${basePath}/artists`)}>
                 <Link to={`${basePath}/artists`}>
                   <Users size={18} />
                   <span>Artists</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem active={isActive(`${basePath}/audios`)}>
-              <SidebarMenuButton asChild>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive(`${basePath}/audios`)}>
                 <Link to={`${basePath}/audios`}>
                   <Music size={18} />
                   <span>Audios</span>
@@ -133,16 +133,16 @@ const AppSidebar: React.FC = () => {
         <SidebarGroupLabel>Verification</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem active={isActive(`${basePath}/verifications`)}>
-              <SidebarMenuButton asChild>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive(`${basePath}/verifications`)}>
                 <Link to={`${basePath}/verifications`}>
                   <Shield size={18} />
                   <span>Artist Verifications</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem active={isActive(`${basePath}/copyright-requests`)}>
-              <SidebarMenuButton asChild>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive(`${basePath}/copyright-requests`)}>
                 <Link to={`${basePath}/copyright-requests`}>
                   <Bell size={18} />
                   <span>Copyright Requests</span>

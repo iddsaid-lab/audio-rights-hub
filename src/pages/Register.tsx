@@ -43,8 +43,8 @@ const registerSchema = z.object({
   nationalIdNumber: z.string().min(5, { message: "Please enter a valid ID number" }),
   passportNumber: z.string().optional(),
   previousWorkUrl: z.string().optional(),
-  agreement: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to the terms" })
+  agreement: z.boolean().refine(val => val === true, {
+    message: "You must agree to the terms"
   })
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
