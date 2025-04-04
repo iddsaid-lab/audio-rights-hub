@@ -1,0 +1,188 @@
+
+import React from 'react';
+import { useLocation, Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import {
+  Home,
+  Music,
+  User,
+  FileCheck,
+  FileText,
+  Settings,
+  CreditCard,
+  Users,
+  Bell,
+  Shield,
+} from 'lucide-react';
+
+const AppSidebar: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+  
+  if (!user) return null;
+
+  const isActive = (path: string) => location.pathname.startsWith(path);
+  const basePath = user.role === 'artist' ? '/artist' : '/admin';
+
+  const renderArtistMenu = () => (
+    <SidebarGroup>
+      <SidebarGroupLabel>Artist Portal</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          <SidebarMenuItem active={isActive(`${basePath}/dashboard`)}>
+            <SidebarMenuButton asChild>
+              <Link to={`${basePath}/dashboard`}>
+                <Home size={18} />
+                <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem active={isActive(`${basePath}/profile`)}>
+            <SidebarMenuButton asChild>
+              <Link to={`${basePath}/profile`}>
+                <User size={18} />
+                <span>My Profile</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem active={isActive(`${basePath}/audios`)}>
+            <SidebarMenuButton asChild>
+              <Link to={`${basePath}/audios`}>
+                <Music size={18} />
+                <span>My Audios</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem active={isActive(`${basePath}/copyrights`)}>
+            <SidebarMenuButton asChild>
+              <Link to={`${basePath}/copyrights`}>
+                <FileCheck size={18} />
+                <span>Copyrights</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem active={isActive(`${basePath}/licenses`)}>
+            <SidebarMenuButton asChild>
+              <Link to={`${basePath}/licenses`}>
+                <FileText size={18} />
+                <span>Licenses</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem active={isActive(`${basePath}/payments`)}>
+            <SidebarMenuButton asChild>
+              <Link to={`${basePath}/payments`}>
+                <CreditCard size={18} />
+                <span>Payments</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+
+  const renderAdminMenu = () => (
+    <>
+      <SidebarGroup>
+        <SidebarGroupLabel>Administration</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem active={isActive(`${basePath}/dashboard`)}>
+              <SidebarMenuButton asChild>
+                <Link to={`${basePath}/dashboard`}>
+                  <Home size={18} />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem active={isActive(`${basePath}/artists`)}>
+              <SidebarMenuButton asChild>
+                <Link to={`${basePath}/artists`}>
+                  <Users size={18} />
+                  <span>Artists</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem active={isActive(`${basePath}/audios`)}>
+              <SidebarMenuButton asChild>
+                <Link to={`${basePath}/audios`}>
+                  <Music size={18} />
+                  <span>Audios</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      
+      <SidebarGroup>
+        <SidebarGroupLabel>Verification</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem active={isActive(`${basePath}/verifications`)}>
+              <SidebarMenuButton asChild>
+                <Link to={`${basePath}/verifications`}>
+                  <Shield size={18} />
+                  <span>Artist Verifications</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem active={isActive(`${basePath}/copyright-requests`)}>
+              <SidebarMenuButton asChild>
+                <Link to={`${basePath}/copyright-requests`}>
+                  <Bell size={18} />
+                  <span>Copyright Requests</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </>
+  );
+
+  return (
+    <>
+      <Sidebar>
+        <SidebarHeader className="px-3 py-2">
+          <div className="flex items-center space-x-2">
+            <Music className="h-6 w-6 text-brand-purple" />
+            <span className="font-bold text-lg">
+              {user.role === 'artist' ? 'Artist Portal' : 'COSOTA Admin'}
+            </span>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          {user.role === 'artist' ? renderArtistMenu() : renderAdminMenu()}
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="px-4 py-2">
+            <Link to={`${basePath}/settings`} className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors">
+              <Settings size={16} />
+              <span>Settings</span>
+            </Link>
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+      <div className="flex items-center h-12 px-4 border-b">
+        <SidebarTrigger />
+      </div>
+    </>
+  );
+};
+
+export default AppSidebar;
