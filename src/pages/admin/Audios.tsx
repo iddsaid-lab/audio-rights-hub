@@ -1,14 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { mockAudios } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
-import { Search, Play, Music, FileCheck } from 'lucide-react';
+import { Search, Play, Music, FileCheck, Info } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import AudioPlayer from '@/components/audio/AudioPlayer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AdminAudios = () => {
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [isPlayDialogOpen, setIsPlayDialogOpen] = useState(false);
+  const [selectedAudio, setSelectedAudio] = useState<typeof mockAudios[0] | null>(null);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const { toast } = useToast();
   
   // Filter audios based on search query
   const filteredAudios = mockAudios.filter(audio => 
@@ -19,6 +30,55 @@ const AdminAudios = () => {
   const approvedAudios = filteredAudios.filter(audio => audio.copyrightStatus === 'approved');
   const pendingAudios = filteredAudios.filter(audio => audio.copyrightStatus === 'pending');
   const rejectedAudios = filteredAudios.filter(audio => audio.copyrightStatus === 'rejected');
+
+  const displayAudios = activeTab === 'all' 
+    ? filteredAudios 
+    : activeTab === 'approved' 
+      ? approvedAudios 
+      : activeTab === 'pending' 
+        ? pendingAudios 
+        : rejectedAudios;
+
+  const openPlayDialog = (audio: typeof mockAudios[0]) => {
+    setSelectedAudio(audio);
+    setIsPlayDialogOpen(true);
+  };
+
+  const openReviewDialog = (audio: typeof mockAudios[0]) => {
+    setSelectedAudio(audio);
+    setReviewNotes('');
+    setIsReviewDialogOpen(true);
+  };
+
+  const handleApprove = () => {
+    if (!selectedAudio) return;
+
+    toast({
+      title: "Copyright Approved",
+      description: `Copyright review for "${selectedAudio.title}" has been completed.`,
+    });
+
+    setIsReviewDialogOpen(false);
+  };
+
+  const handleReject = () => {
+    if (!selectedAudio || !reviewNotes.trim()) return;
+
+    toast({
+      title: "Copyright Rejected",
+      description: `"${selectedAudio.title}" has been rejected with feedback.`,
+      variant: "destructive"
+    });
+
+    setIsReviewDialogOpen(false);
+  };
+
+  const handleDetailsClick = (audio: typeof mockAudios[0]) => {
+    toast({
+      title: "Audio Details",
+      description: `Viewing details for "${audio.title}"`,
+    });
+  };
 
   return (
     <div>
@@ -41,23 +101,17 @@ const AdminAudios = () => {
         </div>
       </div>
       
-      <div className="flex flex-wrap gap-4 mb-6">
-        <Badge className="bg-gray-100 text-gray-800 border-gray-200 px-4 py-2 text-sm font-medium">
-          All Audios: {filteredAudios.length}
-        </Badge>
-        <Badge className="bg-green-100 text-green-800 border-green-200 px-4 py-2 text-sm font-medium">
-          Copyrighted: {approvedAudios.length}
-        </Badge>
-        <Badge className="bg-amber-100 text-amber-800 border-amber-200 px-4 py-2 text-sm font-medium">
-          Pending: {pendingAudios.length}
-        </Badge>
-        <Badge className="bg-red-100 text-red-800 border-red-200 px-4 py-2 text-sm font-medium">
-          Rejected: {rejectedAudios.length}
-        </Badge>
-      </div>
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="all">All Audios ({filteredAudios.length})</TabsTrigger>
+          <TabsTrigger value="approved">Copyrighted ({approvedAudios.length})</TabsTrigger>
+          <TabsTrigger value="pending">Pending ({pendingAudios.length})</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected ({rejectedAudios.length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredAudios.map((audio) => (
+        {displayAudios.map((audio) => (
           <Card key={audio.id}>
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -110,23 +164,23 @@ const AdminAudios = () => {
                 </div>
                 
                 <div className="flex space-x-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={() => openPlayDialog(audio)}>
                     <Play className="mr-2 h-4 w-4" />
                     Play
                   </Button>
                   {audio.copyrightStatus === 'approved' ? (
-                    <Button variant="outline" className="flex-1">
-                      <FileCheck className="mr-2 h-4 w-4" />
-                      Copyright
+                    <Button variant="outline" className="flex-1" onClick={() => handleDetailsClick(audio)}>
+                      <Info className="mr-2 h-4 w-4" />
+                      Details
                     </Button>
                   ) : audio.copyrightStatus === 'pending' ? (
-                    <Button variant="outline" className="flex-1">
+                    <Button variant="outline" className="flex-1" onClick={() => openReviewDialog(audio)}>
                       <FileCheck className="mr-2 h-4 w-4" />
                       Review
                     </Button>
                   ) : (
-                    <Button variant="outline" className="flex-1">
-                      <FileCheck className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className="flex-1" onClick={() => handleDetailsClick(audio)}>
+                      <Info className="mr-2 h-4 w-4" />
                       Details
                     </Button>
                   )}
@@ -136,7 +190,7 @@ const AdminAudios = () => {
           </Card>
         ))}
         
-        {filteredAudios.length === 0 && (
+        {displayAudios.length === 0 && (
           <div className="col-span-3 text-center py-12">
             <Music className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium">No audios found</h3>
@@ -144,6 +198,69 @@ const AdminAudios = () => {
           </div>
         )}
       </div>
+
+      {/* Audio Play Dialog */}
+      <Dialog open={isPlayDialogOpen} onOpenChange={setIsPlayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAudio?.title}
+            </DialogTitle>
+            <DialogDescription>
+              By {selectedAudio?.artistName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAudio && (
+            <AudioPlayer 
+              audioUrl="/sample-audio.mp3" 
+              title={selectedAudio.title}
+              artist={selectedAudio.artistName}
+              coverArt={selectedAudio.coverArt}
+              onEnded={() => {
+                toast({
+                  title: "Playback Ended",
+                  description: `"${selectedAudio.title}" has finished playing`,
+                });
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Review Dialog */}
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Review Copyright</DialogTitle>
+            <DialogDescription>
+              Review and provide feedback for "{selectedAudio?.title}" by {selectedAudio?.artistName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Textarea 
+              placeholder="Add review notes or feedback about this audio submission..."
+              value={reviewNotes}
+              onChange={(e) => setReviewNotes(e.target.value)}
+              className="min-h-[100px]"
+            />
+          </div>
+          
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button 
+              variant="destructive" 
+              onClick={handleReject}
+              disabled={!reviewNotes.trim()}
+            >
+              Reject
+            </Button>
+            <Button onClick={handleApprove}>
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

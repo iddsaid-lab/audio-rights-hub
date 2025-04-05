@@ -6,15 +6,19 @@ import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { mockCopyrightRequests, mockAudios } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Clock, Music, FileCheck } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CheckCircle, XCircle, Clock, Music, FileCheck, Play as PlayIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import AudioPlayer from '@/components/audio/AudioPlayer';
 
 const AdminApprovals = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isRejectDialogOpen, setIsRejectDialogOpen] = React.useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
+  const [isPlayDialogOpen, setIsPlayDialogOpen] = React.useState(false);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | null>(null);
+  const [selectedAudio, setSelectedAudio] = React.useState<typeof mockAudios[0] | null>(null);
   const [rejectionReason, setRejectionReason] = React.useState('');
   
   const isManager = user?.role === 'manager';
@@ -66,6 +70,22 @@ const AdminApprovals = () => {
   
   const getAudio = (audioId: string) => {
     return mockAudios.find(audio => audio.id === audioId);
+  };
+
+  const openDetailsDialog = (requestId: string) => {
+    const request = pendingApprovals.find(r => r.id === requestId);
+    if (request) {
+      setSelectedRequestId(requestId);
+      setIsDetailsDialogOpen(true);
+    }
+  };
+
+  const handlePlayAudio = (audioId: string) => {
+    const audio = getAudio(audioId);
+    if (audio) {
+      setSelectedAudio(audio);
+      setIsPlayDialogOpen(true);
+    }
   };
 
   return (
@@ -153,10 +173,16 @@ const AdminApprovals = () => {
                           </div>
                         </div>
                         
-                        <Button variant="outline" className="w-full md:w-auto">
-                          <FileCheck className="mr-2 h-4 w-4" />
-                          View Copyright Details
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" onClick={() => openDetailsDialog(request.id)}>
+                            <FileCheck className="mr-2 h-4 w-4" />
+                            View Copyright Details
+                          </Button>
+                          <Button variant="outline" onClick={() => handlePlayAudio(request.audioId)}>
+                            <PlayIcon className="mr-2 h-4 w-4" />
+                            Listen
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     
@@ -219,6 +245,95 @@ const AdminApprovals = () => {
               Reject Registration
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Copyright Details</DialogTitle>
+            <DialogDescription>
+              Complete information about this copyright registration
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRequestId && (
+            <div className="space-y-4">
+              {pendingApprovals.find(r => r.id === selectedRequestId) && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Request ID</h3>
+                      <p className="mt-1">{selectedRequestId}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Submission Date</h3>
+                      <p className="mt-1">{new Date(pendingApprovals.find(r => r.id === selectedRequestId)!.submissionDate).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Payment Status</h3>
+                      <p className="mt-1">{pendingApprovals.find(r => r.id === selectedRequestId)!.paymentStatus}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Review Status</h3>
+                      <p className="mt-1">{pendingApprovals.find(r => r.id === selectedRequestId)!.status}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-medium text-gray-500">Copyright Declaration</h3>
+                    <p className="mt-1 text-gray-600">
+                      The artist has declared that they are the sole creator and owner of this work and 
+                      that it does not infringe on any existing copyrights.
+                    </p>
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-medium text-gray-500">Review Notes</h3>
+                    <p className="mt-1 text-gray-600">
+                      {pendingApprovals.find(r => r.id === selectedRequestId)!.reviewNotes || 'No review notes provided.'}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setIsDetailsDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Audio Play Dialog */}
+      <Dialog open={isPlayDialogOpen} onOpenChange={setIsPlayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAudio?.title}
+            </DialogTitle>
+            <DialogDescription>
+              By {selectedAudio?.artistName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAudio && (
+            <AudioPlayer 
+              audioUrl="/sample-audio.mp3" 
+              title={selectedAudio.title}
+              artist={selectedAudio.artistName}
+              coverArt={selectedAudio.coverArt}
+              onEnded={() => {
+                toast({
+                  title: "Playback Ended",
+                  description: `"${selectedAudio.title}" has finished playing`,
+                });
+                setIsPlayDialogOpen(false);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

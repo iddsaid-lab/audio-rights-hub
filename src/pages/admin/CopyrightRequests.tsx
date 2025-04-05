@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockCopyrightRequests, mockAudios } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Music, Clock, FileCheck } from 'lucide-react';
+import { CheckCircle, XCircle, Music, Clock, FileCheck, Play as PlayIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import Play from '@/components/audio/Play';
+import AudioPlayer from '@/components/audio/AudioPlayer';
 
 const AdminCopyrightRequests = () => {
   const { user } = useAuth();
@@ -17,6 +19,8 @@ const AdminCopyrightRequests = () => {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isPlayDialogOpen, setIsPlayDialogOpen] = useState(false);
+  const [selectedAudio, setSelectedAudio] = useState<typeof mockAudios[0] | null>(null);
   
   const canProcess = user?.role === 'manager' || user?.role === 'officer';
   
@@ -65,6 +69,14 @@ const AdminCopyrightRequests = () => {
   
   const getAudio = (audioId: string) => {
     return mockAudios.find(audio => audio.id === audioId);
+  };
+
+  const handlePlayAudio = (audioId: string) => {
+    const audio = getAudio(audioId);
+    if (audio) {
+      setSelectedAudio(audio);
+      setIsPlayDialogOpen(true);
+    }
   };
 
   return (
@@ -155,8 +167,8 @@ const AdminCopyrightRequests = () => {
                               </div>
                             </div>
                             
-                            <Button variant="outline">
-                              <Play className="mr-2 h-4 w-4" />
+                            <Button variant="outline" onClick={() => handlePlayAudio(request.audioId)}>
+                              <PlayIcon className="mr-2 h-4 w-4" />
                               Listen to Audio
                             </Button>
                           </div>
@@ -168,6 +180,8 @@ const AdminCopyrightRequests = () => {
                             placeholder="Add notes about this copyright request..."
                             className="min-h-[100px]"
                             disabled={!canProcess}
+                            value={reviewNotes}
+                            onChange={(e) => setReviewNotes(e.target.value)}
                           />
                         </div>
                       </div>
@@ -183,7 +197,7 @@ const AdminCopyrightRequests = () => {
                       </Button>
                       <Button 
                         onClick={() => handleApprove(request.id)}
-                        disabled={!canProcess}
+                        disabled={!canProcess || !reviewNotes.trim()}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Approve
@@ -309,6 +323,36 @@ const AdminCopyrightRequests = () => {
               Reject Request
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Audio Play Dialog */}
+      <Dialog open={isPlayDialogOpen} onOpenChange={setIsPlayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedAudio?.title}
+            </DialogTitle>
+            <DialogDescription>
+              By {selectedAudio?.artistName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAudio && (
+            <AudioPlayer 
+              audioUrl="/sample-audio.mp3" 
+              title={selectedAudio.title}
+              artist={selectedAudio.artistName}
+              coverArt={selectedAudio.coverArt}
+              onEnded={() => {
+                toast({
+                  title: "Playback Ended",
+                  description: `"${selectedAudio.title}" has finished playing`,
+                });
+                setIsPlayDialogOpen(false);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

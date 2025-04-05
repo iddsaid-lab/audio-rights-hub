@@ -1,14 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { mockArtistProfiles } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
-import { Search, User, Music, Shield } from 'lucide-react';
+import { Search, User, Music, Shield, Check, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AdminArtists = () => {
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
+  const [selectedArtist, setSelectedArtist] = useState<typeof mockArtistProfiles[0] | null>(null);
+  const [activeTab, setActiveTab] = useState('all');
+  const { toast } = useToast();
   
   // Filter artists based on search query
   const filteredArtists = mockArtistProfiles.filter(artist => 
@@ -19,6 +26,46 @@ const AdminArtists = () => {
   const verifiedArtists = filteredArtists.filter(artist => artist.verificationStatus === 'verified');
   const pendingArtists = filteredArtists.filter(artist => artist.verificationStatus === 'pending');
   const rejectedArtists = filteredArtists.filter(artist => artist.verificationStatus === 'rejected');
+
+  const displayArtists = activeTab === 'all' 
+    ? filteredArtists 
+    : activeTab === 'verified' 
+      ? verifiedArtists 
+      : activeTab === 'pending' 
+        ? pendingArtists 
+        : rejectedArtists;
+
+  const openVerifyDialog = (artist: typeof mockArtistProfiles[0]) => {
+    setSelectedArtist(artist);
+    setIsVerifyDialogOpen(true);
+  };
+
+  const handleVerify = (approved: boolean) => {
+    if (!selectedArtist) return;
+
+    const status = approved ? 'verified' : 'rejected';
+    toast({
+      title: approved ? "Artist Verified" : "Artist Rejected",
+      description: `${selectedArtist.fullName} has been ${status}.`,
+      variant: approved ? "default" : "destructive",
+    });
+
+    setIsVerifyDialogOpen(false);
+  };
+
+  const handleViewProfile = (artistId: string) => {
+    toast({
+      title: "Profile View",
+      description: `Viewing details for artist ID: ${artistId.substring(0, 8)}`,
+    });
+  };
+
+  const handleViewAudios = (artistId: string) => {
+    toast({
+      title: "Audios View",
+      description: `Viewing audio recordings for artist ID: ${artistId.substring(0, 8)}`,
+    });
+  };
 
   return (
     <div>
@@ -40,24 +87,18 @@ const AdminArtists = () => {
           />
         </div>
       </div>
-      
-      <div className="flex flex-wrap gap-4 mb-6">
-        <Badge className="bg-gray-100 text-gray-800 border-gray-200 px-4 py-2 text-sm font-medium">
-          All Artists: {filteredArtists.length}
-        </Badge>
-        <Badge className="bg-green-100 text-green-800 border-green-200 px-4 py-2 text-sm font-medium">
-          Verified: {verifiedArtists.length}
-        </Badge>
-        <Badge className="bg-amber-100 text-amber-800 border-amber-200 px-4 py-2 text-sm font-medium">
-          Pending: {pendingArtists.length}
-        </Badge>
-        <Badge className="bg-red-100 text-red-800 border-red-200 px-4 py-2 text-sm font-medium">
-          Rejected: {rejectedArtists.length}
-        </Badge>
-      </div>
+
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="all">All Artists ({filteredArtists.length})</TabsTrigger>
+          <TabsTrigger value="verified">Verified ({verifiedArtists.length})</TabsTrigger>
+          <TabsTrigger value="pending">Pending ({pendingArtists.length})</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected ({rejectedArtists.length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredArtists.map((artist) => (
+        {displayArtists.map((artist) => (
           <Card key={artist.userId}>
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -98,16 +139,16 @@ const AdminArtists = () => {
                 </div>
                 
                 <div className="flex space-x-2">
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={() => handleViewProfile(artist.userId)}>
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </Button>
-                  <Button variant="outline" className="flex-1">
+                  <Button variant="outline" className="flex-1" onClick={() => handleViewAudios(artist.userId)}>
                     <Music className="mr-2 h-4 w-4" />
                     Audios
                   </Button>
                   {artist.verificationStatus === 'pending' && (
-                    <Button variant="outline" className="flex-1">
+                    <Button variant="outline" className="flex-1" onClick={() => openVerifyDialog(artist)}>
                       <Shield className="mr-2 h-4 w-4" />
                       Verify
                     </Button>
@@ -118,7 +159,7 @@ const AdminArtists = () => {
           </Card>
         ))}
         
-        {filteredArtists.length === 0 && (
+        {displayArtists.length === 0 && (
           <div className="col-span-3 text-center py-12">
             <User className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium">No artists found</h3>
@@ -126,6 +167,41 @@ const AdminArtists = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={isVerifyDialogOpen} onOpenChange={setIsVerifyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verify Artist</DialogTitle>
+            <DialogDescription>
+              {selectedArtist && (
+                <>Verify identity of {selectedArtist.fullName} with ID: {selectedArtist.nationalIdNumber}</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="font-medium">National ID:</div>
+              <div>{selectedArtist?.nationalIdNumber}</div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="font-medium">Phone Number:</div>
+              <div>{selectedArtist?.phoneNumber}</div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex space-x-2 justify-end">
+            <Button variant="outline" onClick={() => handleVerify(false)}>
+              <X className="mr-2 h-4 w-4" />
+              Reject
+            </Button>
+            <Button onClick={() => handleVerify(true)}>
+              <Check className="mr-2 h-4 w-4" />
+              Approve
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
