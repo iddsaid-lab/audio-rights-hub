@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 
 const AdminSettings = () => {
   const { toast } = useToast();
-  const { user } = useToast();
+  const { user } = useAuth();
   
   const handleSave = () => {
     toast({

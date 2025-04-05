@@ -110,4 +110,5 @@ export interface CopyrightRequest {
   reviewDate?: string;
   paymentStatus: 'pending' | 'paid' | 'waived';
   paymentAmount?: number;
+  paymentDate?: string;
 }
