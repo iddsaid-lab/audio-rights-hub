@@ -22,9 +22,22 @@ import NotFound from "./pages/NotFound";
 
 // Artist Pages
 import ArtistDashboard from "./pages/artist/Dashboard";
+import ArtistProfile from "./pages/artist/Profile";
+import ArtistAudios from "./pages/artist/Audios";
+import ArtistCopyrights from "./pages/artist/Copyrights";
+import ArtistLicenses from "./pages/artist/Licenses";
+import ArtistPayments from "./pages/artist/Payments";
+import ArtistSettings from "./pages/artist/Settings";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
+import AdminArtists from "./pages/admin/Artists";
+import AdminAudios from "./pages/admin/Audios";
+import AdminVerifications from "./pages/admin/Verifications";
+import AdminCopyrightRequests from "./pages/admin/CopyrightRequests";
+import AdminSettings from "./pages/admin/Settings";
+import AdminPayments from "./pages/admin/Payments";
+import AdminApprovals from "./pages/admin/Approvals";
 
 const queryClient = new QueryClient();
 
@@ -50,13 +63,24 @@ const App = () => (
             {/* Artist Routes */}
             <Route path="/artist" element={<AppLayout />}>
               <Route path="dashboard" element={<ArtistDashboard />} />
-              {/* Additional artist routes would go here */}
+              <Route path="profile" element={<ArtistProfile />} />
+              <Route path="audios" element={<ArtistAudios />} />
+              <Route path="copyrights" element={<ArtistCopyrights />} />
+              <Route path="licenses" element={<ArtistLicenses />} />
+              <Route path="payments" element={<ArtistPayments />} />
+              <Route path="settings" element={<ArtistSettings />} />
             </Route>
             
             {/* Admin Routes */}
             <Route path="/admin" element={<AppLayout />}>
               <Route path="dashboard" element={<AdminDashboard />} />
-              {/* Additional admin routes would go here */}
+              <Route path="artists" element={<AdminArtists />} />
+              <Route path="audios" element={<AdminAudios />} />
+              <Route path="verifications" element={<AdminVerifications />} />
+              <Route path="copyright-requests" element={<AdminCopyrightRequests />} />
+              <Route path="payments" element={<AdminPayments />} />
+              <Route path="approvals" element={<AdminApprovals />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
             
             {/* 404 Route */}

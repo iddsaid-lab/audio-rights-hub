@@ -26,6 +26,8 @@ import {
   Users,
   Bell,
   Shield,
+  DollarSign,
+  CheckSquare,
 } from 'lucide-react';
 
 const AppSidebar: React.FC = () => {
@@ -95,6 +97,16 @@ const AppSidebar: React.FC = () => {
     </SidebarGroup>
   );
 
+  // Function to check if user has required role
+  const hasRole = (requiredRole: string) => {
+    return user.role === requiredRole;
+  };
+
+  // Function to check if user has any of the required roles
+  const hasAnyRole = (requiredRoles: string[]) => {
+    return requiredRoles.includes(user.role);
+  };
+
   const renderAdminMenu = () => (
     <>
       <SidebarGroup>
@@ -109,14 +121,20 @@ const AppSidebar: React.FC = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive(`${basePath}/artists`)}>
-                <Link to={`${basePath}/artists`}>
-                  <Users size={18} />
-                  <span>Artists</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            
+            {/* Officers, Managers can view artists */}
+            {hasAnyRole(['manager', 'officer']) && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(`${basePath}/artists`)}>
+                  <Link to={`${basePath}/artists`}>
+                    <Users size={18} />
+                    <span>Artists</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+            
+            {/* All admin roles can view audios */}
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={isActive(`${basePath}/audios`)}>
                 <Link to={`${basePath}/audios`}>
@@ -125,6 +143,30 @@ const AppSidebar: React.FC = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            
+            {/* Only cashiers can access payments */}
+            {hasRole('cashier') && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(`${basePath}/payments`)}>
+                  <Link to={`${basePath}/payments`}>
+                    <DollarSign size={18} />
+                    <span>Payment Management</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+            
+            {/* Only managers can approve copyrights */}
+            {hasRole('manager') && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(`${basePath}/approvals`)}>
+                  <Link to={`${basePath}/approvals`}>
+                    <CheckSquare size={18} />
+                    <span>Final Approvals</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -133,22 +175,29 @@ const AppSidebar: React.FC = () => {
         <SidebarGroupLabel>Verification</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive(`${basePath}/verifications`)}>
-                <Link to={`${basePath}/verifications`}>
-                  <Shield size={18} />
-                  <span>Artist Verifications</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive(`${basePath}/copyright-requests`)}>
-                <Link to={`${basePath}/copyright-requests`}>
-                  <Bell size={18} />
-                  <span>Copyright Requests</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {/* Officers and Managers can verify artists */}
+            {hasAnyRole(['manager', 'officer']) && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(`${basePath}/verifications`)}>
+                  <Link to={`${basePath}/verifications`}>
+                    <Shield size={18} />
+                    <span>Artist Verifications</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+            
+            {/* Officers and Managers can handle copyright requests */}
+            {hasAnyRole(['manager', 'officer']) && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(`${basePath}/copyright-requests`)}>
+                  <Link to={`${basePath}/copyright-requests`}>
+                    <Bell size={18} />
+                    <span>Copyright Requests</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
