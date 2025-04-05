@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { mockArtistProfiles, mockVerificationRequests } from '@/data/mockData';
-import { User, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { User, CheckCircle, XCircle, Clock, FileText, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,8 @@ const AdminVerifications = () => {
   const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [isViewDocumentDialogOpen, setIsViewDocumentDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<{title: string, type: string}>({title: '', type: ''});
   
   const canApprove = user?.role === 'manager' || user?.role === 'officer';
   
@@ -65,6 +67,14 @@ const AdminVerifications = () => {
   
   const getArtistProfile = (artistId: string) => {
     return mockArtistProfiles.find(profile => profile.userId === artistId);
+  };
+
+  const viewDocument = (documentType: string, artistName: string) => {
+    setSelectedDocument({
+      title: `${artistName}'s ${documentType}`,
+      type: documentType
+    });
+    setIsViewDocumentDialogOpen(true);
   };
 
   return (
@@ -137,17 +147,32 @@ const AdminVerifications = () => {
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Documents</h3>
                           <div className="mt-2 flex flex-wrap gap-2">
-                            <Button variant="outline" size="sm" asChild>
-                              <a href="#view-id" onClick={(e) => e.preventDefault()}>View ID</a>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => viewDocument('National ID', req.artistName)}
+                            >
+                              <Eye className="mr-1 h-3 w-3" />
+                              View ID
                             </Button>
                             {req.documents.passport && (
-                              <Button variant="outline" size="sm" asChild>
-                                <a href="#view-passport" onClick={(e) => e.preventDefault()}>View Passport</a>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => viewDocument('Passport', req.artistName)}
+                              >
+                                <Eye className="mr-1 h-3 w-3" />
+                                View Passport
                               </Button>
                             )}
                             {req.documents.previousWork && (
-                              <Button variant="outline" size="sm" asChild>
-                                <a href="#view-work" onClick={(e) => e.preventDefault()}>Previous Work</a>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => viewDocument('Previous Work', req.artistName)}
+                              >
+                                <Eye className="mr-1 h-3 w-3" />
+                                Previous Work
                               </Button>
                             )}
                           </div>
@@ -244,6 +269,7 @@ const AdminVerifications = () => {
         </TabsContent>
       </Tabs>
       
+      {/* Reject Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -270,6 +296,48 @@ const AdminVerifications = () => {
               disabled={!rejectionReason.trim()}
             >
               Reject Verification
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Viewer Dialog */}
+      <Dialog open={isViewDocumentDialogOpen} onOpenChange={setIsViewDocumentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedDocument.title}</DialogTitle>
+            <DialogDescription>
+              Viewing submitted verification document
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex items-center justify-center bg-gray-100 p-4 rounded-md min-h-[200px]">
+            {selectedDocument.type === 'National ID' && (
+              <div className="flex flex-col items-center">
+                <FileText className="h-16 w-16 text-gray-400 mb-2" />
+                <p className="text-gray-500">National ID Document Preview</p>
+                <p className="text-xs text-gray-400 mt-2">(Sample document for demonstration)</p>
+              </div>
+            )}
+            {selectedDocument.type === 'Passport' && (
+              <div className="flex flex-col items-center">
+                <FileText className="h-16 w-16 text-gray-400 mb-2" />
+                <p className="text-gray-500">Passport Document Preview</p>
+                <p className="text-xs text-gray-400 mt-2">(Sample document for demonstration)</p>
+              </div>
+            )}
+            {selectedDocument.type === 'Previous Work' && (
+              <div className="flex flex-col items-center">
+                <FileText className="h-16 w-16 text-gray-400 mb-2" />
+                <p className="text-gray-500">Previous Work Document Preview</p>
+                <p className="text-xs text-gray-400 mt-2">(Sample document for demonstration)</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button onClick={() => setIsViewDocumentDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

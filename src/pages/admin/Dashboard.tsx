@@ -1,15 +1,17 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Users, Music, FileCheck, Shield, User, UserCheck, AlertCircle, DollarSign, CheckSquare, CreditCard } from 'lucide-react';
 import { mockAudios, mockArtistProfiles, mockVerificationRequests, mockCopyrightRequests } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Calculate stats
   const pendingVerifications = mockVerificationRequests.filter(req => req.status === 'pending').length;
@@ -17,7 +19,42 @@ const AdminDashboard = () => {
   const totalArtists = mockArtistProfiles.length;
   const totalAudios = mockAudios.length;
   
-  // Role-specific content
+  // Handler for artist verification button
+  const handleVerificationReview = (artistId: string) => {
+    navigate(`/admin/verifications`);
+    toast({
+      title: "Redirecting to Verifications",
+      description: "Opening artist verification requests page",
+    });
+  };
+  
+  // Handler for copyright request button
+  const handleCopyrightProcess = (requestId: string) => {
+    navigate(`/admin/copyright-requests`);
+    toast({
+      title: "Redirecting to Copyright Requests",
+      description: "Opening copyright requests page",
+    });
+  };
+  
+  // Handler for final approval by manager
+  const handleApproval = (requestId: string) => {
+    navigate(`/admin/approvals`);
+    toast({
+      title: "Redirecting to Approvals",
+      description: "Opening final approvals page",
+    });
+  };
+  
+  // Handler for payment processing by cashier
+  const handlePaymentProcess = (requestId: string) => {
+    navigate(`/admin/payments`);
+    toast({
+      title: "Redirecting to Payments",
+      description: "Opening payment processing page",
+    });
+  };
+  
   const renderManagerDashboard = () => (
     <>
       {/* Stats Overview */}
@@ -102,9 +139,13 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Link to={`/admin/approvals/${req.id}`}>
-                      <Button variant="outline" size="sm">Approve</Button>
-                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleApproval(req.id)}
+                    >
+                      Approve
+                    </Button>
                   </div>
                 </div>
               );
@@ -203,9 +244,13 @@ const AdminDashboard = () => {
                   </div>
                 </div>
                 <div>
-                  <Link to={`/admin/verifications/${req.artistId}`}>
-                    <Button variant="outline" size="sm">Review</Button>
-                  </Link>
+                  <Button
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleVerificationReview(req.artistId)}
+                  >
+                    Review
+                  </Button>
                 </div>
               </div>
             ))}
@@ -243,9 +288,13 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Link to={`/admin/copyright-requests/${req.id}`}>
-                      <Button variant="outline" size="sm">Process</Button>
-                    </Link>
+                    <Button
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleCopyrightProcess(req.id)}
+                    >
+                      Process
+                    </Button>
                   </div>
                 </div>
               );
@@ -338,9 +387,13 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <Link to={`/admin/payments/${req.id}`}>
-                      <Button variant="outline" size="sm">Process Payment</Button>
-                    </Link>
+                    <Button
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handlePaymentProcess(req.id)}
+                    >
+                      Process Payment
+                    </Button>
                   </div>
                 </div>
               );
