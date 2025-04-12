@@ -1,3 +1,4 @@
+
 export type UserRole = 'artist' | 'manager' | 'cashier' | 'officer';
 
 export interface User {
@@ -41,6 +42,7 @@ export interface Audio {
   copyrightId?: string;
   playCount: number;
   blockchainAddress?: string;
+  audioHash?: string;
 }
 
 export interface Copyright {
@@ -107,7 +109,7 @@ export interface CopyrightRequest {
   audioId: string;
   artistId: string;
   submissionDate: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'escalated';
   reviewerId?: string;
   reviewNotes?: string;
   reviewDate?: string;
@@ -115,4 +117,16 @@ export interface CopyrightRequest {
   paymentAmount?: number;
   paymentDate?: string;
   blockchainAddress?: string;
+  audioHash?: string;
+  hashMatchFound?: boolean;
+  escalatedToManager?: boolean;
+  escalationReason?: string;
+  escalationDate?: string;
+  similarAudios?: {
+    id: string;
+    title: string;
+    artistName: string;
+    ownerName: string;
+    similarityScore: number;
+  }[];
 }
