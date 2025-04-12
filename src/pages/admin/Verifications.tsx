@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { mockArtistProfiles, mockVerificationRequests } from '@/data/mockData';
-import { User, CheckCircle, XCircle, Clock, FileText, Eye } from 'lucide-react';
+import { User, CheckCircle, XCircle, Clock, FileText, Eye, Wallet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +18,9 @@ const AdminVerifications = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isViewDocumentDialogOpen, setIsViewDocumentDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<{title: string, type: string}>({title: '', type: ''});
+  const [isWalletDialogOpen, setIsWalletDialogOpen] = useState(false);
+  const [walletGenerating, setWalletGenerating] = useState(false);
+  const [generatedWallet, setGeneratedWallet] = useState<string | null>(null);
   
   const canApprove = user?.role === 'manager' || user?.role === 'officer';
   
@@ -35,10 +37,45 @@ const AdminVerifications = () => {
       return;
     }
     
+    // First, open wallet generation dialog
+    setSelectedArtistId(artistId);
+    setIsWalletDialogOpen(true);
+  };
+
+  const generateWallet = async () => {
+    setWalletGenerating(true);
+    
+    try {
+      // Simulate blockchain wallet generation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Generate a mock wallet address
+      const randomWallet = '0x' + Array.from({length: 40}, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+      
+      setGeneratedWallet(randomWallet);
+      setWalletGenerating(false);
+    } catch (error) {
+      toast({
+        title: "Wallet Generation Failed",
+        description: "There was an error generating the blockchain wallet. Please try again.",
+        variant: "destructive"
+      });
+      setWalletGenerating(false);
+    }
+  };
+
+  const confirmApprovalWithWallet = () => {
+    if (!generatedWallet || !selectedArtistId) return;
+    
     toast({
       title: "Artist Verified",
-      description: "The artist has been successfully verified.",
+      description: "The artist has been successfully verified and assigned a blockchain wallet address.",
     });
+    
+    setIsWalletDialogOpen(false);
+    setGeneratedWallet(null);
   };
   
   const openRejectDialog = (artistId: string) => {
@@ -248,6 +285,18 @@ const AdminVerifications = () => {
                           </div>
                         </div>
                         
+                        {isApproved && (
+                          <div className="p-3 bg-green-50 border border-green-100 rounded-md">
+                            <h3 className="text-sm font-medium text-green-800 flex items-center">
+                              <Wallet className="h-4 w-4 mr-2" />
+                              Blockchain Wallet
+                            </h3>
+                            <p className="mt-1 text-sm text-green-700 font-mono break-all">
+                              {artistProfile?.walletAddress || '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'}
+                            </p>
+                          </div>
+                        )}
+                        
                         {req.reviewNotes && (
                           <div>
                             <h3 className="text-sm font-medium text-gray-500">Review Notes</h3>
@@ -338,6 +387,72 @@ const AdminVerifications = () => {
           <DialogFooter>
             <Button onClick={() => setIsViewDocumentDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Blockchain Wallet Generation Dialog */}
+      <Dialog open={isWalletDialogOpen} onOpenChange={(open) => {
+        setIsWalletDialogOpen(open);
+        if (!open) {
+          setGeneratedWallet(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate Blockchain Wallet</DialogTitle>
+            <DialogDescription>
+              Generate a blockchain wallet address for this artist. This will be used to track all of their work and copyright registrations.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {!generatedWallet ? (
+              <div className="flex flex-col items-center justify-center p-6">
+                <Wallet className="h-16 w-16 text-brand-purple mb-4" />
+                <p className="text-center text-gray-600 mb-4">
+                  A unique blockchain wallet will be generated for this artist. This wallet address will be used to track all of their work and copyright registrations.
+                </p>
+                <Button 
+                  onClick={generateWallet} 
+                  disabled={walletGenerating}
+                  className="w-full"
+                >
+                  {walletGenerating ? (
+                    <>
+                      <span className="animate-spin mr-2">⚙️</span>
+                      Generating Wallet...
+                    </>
+                  ) : (
+                    'Generate Wallet'
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-100 rounded-md">
+                  <h3 className="font-medium text-green-800 mb-2">Wallet Generated Successfully</h3>
+                  <p className="text-sm text-green-700 font-mono break-all">
+                    {generatedWallet}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600">
+                  This wallet address has been generated for the artist and will be permanently associated with their account. They can use this address to track their copyrights on the blockchain.
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsWalletDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmApprovalWithWallet}
+              disabled={!generatedWallet}
+            >
+              Confirm & Approve Artist
             </Button>
           </DialogFooter>
         </DialogContent>

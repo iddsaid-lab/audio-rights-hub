@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockCopyrightRequests, mockAudios } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Music, Clock, FileCheck, Play as PlayIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Music, Clock, FileCheck, Play as PlayIcon, Share2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import Play from '@/components/audio/Play';
@@ -21,6 +21,9 @@ const AdminCopyrightRequests = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isPlayDialogOpen, setIsPlayDialogOpen] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState<typeof mockAudios[0] | null>(null);
+  const [isBlockchainDialogOpen, setIsBlockchainDialogOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [blockchainAddress, setBlockchainAddress] = useState<string | null>(null);
   
   const canProcess = user?.role === 'manager' || user?.role === 'officer';
   
@@ -36,11 +39,48 @@ const AdminCopyrightRequests = () => {
       });
       return;
     }
+
+    // First open blockchain dialog
+    setSelectedRequestId(requestId);
+    setIsBlockchainDialogOpen(true);
+  };
+  
+  const publishToBlockchain = async () => {
+    if (!selectedRequestId) return;
+    
+    setIsPublishing(true);
+    
+    try {
+      // Simulate blockchain publishing
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Generate a mock blockchain address
+      const randomAddress = '0x' + Array.from({length: 40}, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+      
+      setBlockchainAddress(randomAddress);
+      setIsPublishing(false);
+    } catch (error) {
+      toast({
+        title: "Blockchain Publishing Failed",
+        description: "There was an error publishing to the blockchain. Please try again.",
+        variant: "destructive"
+      });
+      setIsPublishing(false);
+    }
+  };
+
+  const confirmApprovalWithBlockchain = () => {
+    if (!blockchainAddress || !selectedRequestId) return;
     
     toast({
       title: "Request Approved",
-      description: "The copyright request has been approved and forwarded for payment.",
+      description: "The copyright has been approved and published to the blockchain successfully.",
     });
+    
+    setIsBlockchainDialogOpen(false);
+    setBlockchainAddress(null);
   };
   
   const openRejectDialog = (requestId: string) => {
@@ -271,6 +311,21 @@ const AdminCopyrightRequests = () => {
                                 <p className="mt-1 capitalize">{request.paymentStatus}</p>
                               </div>
                             </div>
+
+                            {isApproved && request.blockchainAddress && (
+                              <div className="p-3 bg-green-50 border border-green-100 rounded-md">
+                                <h3 className="text-sm font-medium text-green-800 flex items-center">
+                                  <Share2 className="h-4 w-4 mr-2" />
+                                  Blockchain Record
+                                </h3>
+                                <p className="mt-1 text-sm text-green-700 font-mono break-all">
+                                  {request.blockchainAddress || '0xEe26845eEB53fa496B07D34F118a00F6a5C25078ad51C'}
+                                </p>
+                                <p className="mt-1 text-xs text-green-600">
+                                  This copyright is permanently recorded on the blockchain and can be verified by anyone.
+                                </p>
+                              </div>
+                            )}
                             
                             {request.reviewNotes && (
                               <div className="p-4 bg-gray-50 rounded-md">
@@ -353,6 +408,72 @@ const AdminCopyrightRequests = () => {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Blockchain Publishing Dialog */}
+      <Dialog open={isBlockchainDialogOpen} onOpenChange={(open) => {
+        setIsBlockchainDialogOpen(open);
+        if (!open) {
+          setBlockchainAddress(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish to Blockchain</DialogTitle>
+            <DialogDescription>
+              Publish this copyright to the blockchain to create a permanent and verifiable record.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {!blockchainAddress ? (
+              <div className="flex flex-col items-center justify-center p-6">
+                <Share2 className="h-16 w-16 text-brand-purple mb-4" />
+                <p className="text-center text-gray-600 mb-4">
+                  This process will publish the audio details and copyright information to the blockchain, creating a permanent and verifiable record of ownership.
+                </p>
+                <Button 
+                  onClick={publishToBlockchain} 
+                  disabled={isPublishing}
+                  className="w-full"
+                >
+                  {isPublishing ? (
+                    <>
+                      <span className="animate-spin mr-2">⚙️</span>
+                      Publishing to Blockchain...
+                    </>
+                  ) : (
+                    'Publish to Blockchain'
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-100 rounded-md">
+                  <h3 className="font-medium text-green-800 mb-2">Successfully Published</h3>
+                  <p className="text-sm text-green-700 font-mono break-all">
+                    {blockchainAddress}
+                  </p>
+                </div>
+                <p className="text-sm text-gray-600">
+                  This copyright has been successfully published to the blockchain. This creates a permanent record that can be used to verify ownership and authenticity.
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsBlockchainDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmApprovalWithBlockchain}
+              disabled={!blockchainAddress}
+            >
+              Confirm & Approve Copyright
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

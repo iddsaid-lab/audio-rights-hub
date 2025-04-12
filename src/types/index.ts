@@ -1,4 +1,3 @@
-
 export type UserRole = 'artist' | 'manager' | 'cashier' | 'officer';
 
 export interface User {
@@ -8,6 +7,7 @@ export interface User {
   role: UserRole;
   verified: boolean;
   profileImage?: string;
+  walletAddress?: string;
 }
 
 export interface ArtistProfile {
@@ -23,6 +23,7 @@ export interface ArtistProfile {
   verificationNotes?: string;
   verifiedBy?: string;
   verifiedAt?: string;
+  walletAddress?: string;
 }
 
 export interface Audio {
@@ -39,6 +40,7 @@ export interface Audio {
   copyrightStatus: 'pending' | 'approved' | 'rejected';
   copyrightId?: string;
   playCount: number;
+  blockchainAddress?: string;
 }
 
 export interface Copyright {
@@ -55,6 +57,7 @@ export interface Copyright {
   paymentDate?: string;
   approvedBy?: string;
   transfers: CopyrightTransfer[];
+  blockchainAddress?: string;
 }
 
 export interface CopyrightTransfer {
@@ -111,4 +114,5 @@ export interface CopyrightRequest {
   paymentStatus: 'pending' | 'paid' | 'waived';
   paymentAmount?: number;
   paymentDate?: string;
+  blockchainAddress?: string;
 }

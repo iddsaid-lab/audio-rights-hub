@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { mockArtistProfiles } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Wallet, Copy } from 'lucide-react';
 
 const ArtistProfile = () => {
   const { user } = useAuth();
@@ -27,6 +27,9 @@ const ArtistProfile = () => {
     passportNumber: artistProfile?.passportNumber || '',
     previousWorkUrl: artistProfile?.previousWorkUrl || '',
   });
+
+  // Sample blockchain wallet address for demo
+  const walletAddress = artistProfile?.walletAddress || "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -58,6 +61,14 @@ const ArtistProfile = () => {
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "Wallet address copied to clipboard",
+    });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -76,6 +87,7 @@ const ArtistProfile = () => {
         <TabsList className="mb-4">
           <TabsTrigger value="profile">Profile Information</TabsTrigger>
           <TabsTrigger value="verification">Verification Status</TabsTrigger>
+          <TabsTrigger value="blockchain">Blockchain</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile">
@@ -280,6 +292,93 @@ const ArtistProfile = () => {
                     <p className="mt-1 text-amber-700">
                       Your verification is currently being reviewed by COSOTA officials. This process typically takes 2-5 business days.
                     </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="blockchain">
+          <Card>
+            <CardHeader>
+              <CardTitle>Blockchain Wallet</CardTitle>
+              <CardDescription>
+                Your blockchain wallet is used to track your copyrights and royalties on the blockchain.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {artistProfile?.verificationStatus === 'verified' ? (
+                  <>
+                    <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Wallet className="h-5 w-5 text-green-700" />
+                        <h3 className="font-medium text-green-800">Your Wallet Address</h3>
+                      </div>
+
+                      <div className="flex items-center">
+                        <p className="text-green-700 font-mono break-all flex-1">
+                          {walletAddress}
+                        </p>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => copyToClipboard(walletAddress)}
+                          className="ml-2"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="font-medium">What is this wallet used for?</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium mb-2">Copyright Tracking</h4>
+                          <p className="text-sm text-gray-600">
+                            Your copyrights are tracked on the blockchain using this wallet address. This creates a permanent and verifiable record of your work.
+                          </p>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium mb-2">Royalty Tracking</h4>
+                          <p className="text-sm text-gray-600">
+                            Any royalties generated from your work will be tracked using this wallet address. This ensures transparent and accurate royalty payments.
+                          </p>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium mb-2">Ownership Verification</h4>
+                          <p className="text-sm text-gray-600">
+                            Your ownership of copyrighted work is verifiable through this wallet address. This can be used to prove your ownership in case of disputes.
+                          </p>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h4 className="font-medium mb-2">Licensing Management</h4>
+                          <p className="text-sm text-gray-600">
+                            Any licenses issued for your work will be recorded on the blockchain and associated with this wallet address.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-4 border border-blue-100 rounded-lg">
+                      <h3 className="font-medium text-blue-800 mb-2">Important Note</h3>
+                      <p className="text-sm text-blue-700">
+                        This wallet address was generated for you by COSOTA during the verification process. You do not need to manage private keys or passwords for this wallet. All blockchain interactions are handled by COSOTA on your behalf.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-10 text-center">
+                    <Wallet className="h-16 w-16 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Verification Required</h3>
+                    <p className="text-gray-600 max-w-md">
+                      You need to complete the artist verification process before a blockchain wallet can be generated for you. This wallet will be used to track your copyrights and royalties.
+                    </p>
+                    <Button className="mt-4" onClick={() => document.querySelector('[data-value="verification"]')?.dispatchEvent(new Event('click'))}>
+                      Go to Verification
+                    </Button>
                   </div>
                 )}
               </div>
