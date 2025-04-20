@@ -1,12 +1,16 @@
 
-import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import React, { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import AppSidebar from './AppSidebar';
 import { Loader2 } from 'lucide-react';
 
-const AppLayout: React.FC = () => {
+interface AppLayoutProps {
+  children: ReactNode;
+}
+
+const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -29,7 +33,7 @@ const AppLayout: React.FC = () => {
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto py-6 px-4">
-            <Outlet />
+            {children}
           </div>
         </main>
       </div>
