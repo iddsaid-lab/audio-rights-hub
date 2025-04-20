@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { mockCopyrights } from '@/data/mockData';
 
 interface AudioCopyrightOptionsProps {
@@ -27,8 +26,8 @@ const AudioCopyrightOptions = ({ audioData, updateAudioData }: AudioCopyrightOpt
       </div>
       
       <div className="space-y-6">
-        <FormItem className="space-y-3">
-          <FormLabel>Registration Type</FormLabel>
+        <div className="space-y-3">
+          <Label>Registration Type</Label>
           <RadioGroup 
             value={audioData.requestType}
             onValueChange={(value) => updateAudioData({ requestType: value })}
@@ -47,14 +46,14 @@ const AudioCopyrightOptions = ({ audioData, updateAudioData }: AudioCopyrightOpt
               </Label>
             </div>
           </RadioGroup>
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             Select whether this is a new copyright registration or renewal of an existing one
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
         
         {audioData.requestType === 'renewal' && (
-          <FormItem className="space-y-2">
-            <FormLabel htmlFor="previousCopyright">Previous Copyright</FormLabel>
+          <div className="space-y-2">
+            <Label htmlFor="previousCopyright">Previous Copyright</Label>
             <Select
               value={audioData.previousCopyrightId}
               onValueChange={(value) => updateAudioData({ previousCopyrightId: value })}
@@ -70,19 +69,19 @@ const AudioCopyrightOptions = ({ audioData, updateAudioData }: AudioCopyrightOpt
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>
+            <p className="text-sm text-muted-foreground">
               Select the copyright registration that you wish to renew
-            </FormDescription>
-          </FormItem>
+            </p>
+          </div>
         )}
         
         <div className="space-y-6 pt-4 border-t border-gray-200">
-          <FormItem className="flex flex-row items-center justify-between space-x-2">
+          <div className="flex flex-row items-center justify-between space-x-2">
             <div className="space-y-0.5">
-              <FormLabel htmlFor="allowLicensing">Allow Licensing</FormLabel>
-              <FormDescription>
+              <Label htmlFor="allowLicensing">Allow Licensing</Label>
+              <p className="text-sm text-muted-foreground">
                 Make your work available for others to license and use
-              </FormDescription>
+              </p>
             </div>
             <Switch
               id="allowLicensing"
@@ -92,11 +91,11 @@ const AudioCopyrightOptions = ({ audioData, updateAudioData }: AudioCopyrightOpt
                 licensingPrice: !checked ? 0 : audioData.licensingPrice
               })}
             />
-          </FormItem>
+          </div>
           
           {audioData.allowLicensing && (
-            <FormItem className="space-y-2">
-              <FormLabel htmlFor="licensingPrice">Licensing Price (TZS)</FormLabel>
+            <div className="space-y-2">
+              <Label htmlFor="licensingPrice">Licensing Price (TZS)</Label>
               <Input
                 id="licensingPrice"
                 type="number"
@@ -105,10 +104,10 @@ const AudioCopyrightOptions = ({ audioData, updateAudioData }: AudioCopyrightOpt
                 onChange={(e) => updateAudioData({ licensingPrice: parseInt(e.target.value) || 0 })}
                 placeholder="Enter amount in TZS"
               />
-              <FormDescription>
+              <p className="text-sm text-muted-foreground">
                 Set your preferred licensing fee for this audio work
-              </FormDescription>
-            </FormItem>
+              </p>
+            </div>
           )}
         </div>
       </div>

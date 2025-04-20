@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Music, Image, Upload, X } from 'lucide-react';
@@ -52,10 +51,10 @@ const AudioFileUpload = ({ audioData, updateAudioData }: AudioFileUploadProps) =
       </div>
       
       <div className="space-y-6">
-        <FormItem>
-          <FormLabel>
+        <div className="space-y-2">
+          <Label>
             Audio File <span className="text-red-500">*</span>
-          </FormLabel>
+          </Label>
           <Card className={`border-2 border-dashed p-6 ${audioPreview ? 'border-green-300 bg-green-50' : 'border-gray-300'}`}>
             {!audioPreview ? (
               <div className="flex flex-col items-center justify-center py-4">
@@ -103,13 +102,13 @@ const AudioFileUpload = ({ audioData, updateAudioData }: AudioFileUploadProps) =
               </div>
             )}
           </Card>
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             This audio file will be analyzed to generate a unique hash for copyright verification
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
         
-        <FormItem>
-          <FormLabel>Cover Art (Optional)</FormLabel>
+        <div className="space-y-2">
+          <Label>Cover Art (Optional)</Label>
           <Card className={`border-2 border-dashed p-6 ${coverArtPreview ? 'border-blue-300 bg-blue-50' : 'border-gray-300'}`}>
             {!coverArtPreview ? (
               <div className="flex flex-col items-center justify-center py-4">
@@ -157,10 +156,10 @@ const AudioFileUpload = ({ audioData, updateAudioData }: AudioFileUploadProps) =
               </div>
             )}
           </Card>
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             A visual representation of your audio work
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
       </div>
     </div>
   );

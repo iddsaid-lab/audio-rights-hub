@@ -1,10 +1,8 @@
 
 import React from 'react';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -36,7 +34,7 @@ const AudioAdditionalInfo = ({ audioData, updateAudioData }: AudioAdditionalInfo
       </div>
       
       <div className="space-y-4">
-        <FormItem className="space-y-2">
+        <div className="space-y-2">
           <div className="flex items-start space-x-2">
             <Checkbox 
               id="isOriginalWork" 
@@ -54,10 +52,10 @@ const AudioAdditionalInfo = ({ audioData, updateAudioData }: AudioAdditionalInfo
               </p>
             </div>
           </div>
-        </FormItem>
+        </div>
         
-        <FormItem className="space-y-2">
-          <FormLabel>Recording Date (if known)</FormLabel>
+        <div className="space-y-2">
+          <Label>Recording Date (if known)</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -77,13 +75,13 @@ const AudioAdditionalInfo = ({ audioData, updateAudioData }: AudioAdditionalInfo
               />
             </PopoverContent>
           </Popover>
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             The date when this audio work was recorded or created
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
         
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="collaborators">Collaborators (if any)</FormLabel>
+        <div className="space-y-2">
+          <Label htmlFor="collaborators">Collaborators (if any)</Label>
           <Textarea
             id="collaborators"
             placeholder="List any co-creators, musicians, producers, etc."
@@ -93,12 +91,12 @@ const AudioAdditionalInfo = ({ audioData, updateAudioData }: AudioAdditionalInfo
             })}
             className="min-h-[80px]"
           />
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             List anyone who contributed to the creation of this work
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
         
-        <FormItem className="space-y-2">
+        <div className="space-y-2">
           <div className="flex items-start space-x-2">
             <Checkbox 
               id="hasReleased" 
@@ -116,11 +114,11 @@ const AudioAdditionalInfo = ({ audioData, updateAudioData }: AudioAdditionalInfo
               </p>
             </div>
           </div>
-        </FormItem>
+        </div>
         
         {audioData.hasReleased && (
-          <FormItem className="space-y-2">
-            <FormLabel htmlFor="releaseInfo">Release Information</FormLabel>
+          <div className="space-y-2">
+            <Label htmlFor="releaseInfo">Release Information</Label>
             <Textarea
               id="releaseInfo"
               placeholder="Provide details about the previous release..."
@@ -128,10 +126,10 @@ const AudioAdditionalInfo = ({ audioData, updateAudioData }: AudioAdditionalInfo
               onChange={(e) => updateAudioData({ releaseInfo: e.target.value })}
               className="min-h-[80px]"
             />
-            <FormDescription>
+            <p className="text-sm text-muted-foreground">
               Include release date, platform, and any other relevant details
-            </FormDescription>
-          </FormItem>
+            </p>
+          </div>
         )}
       </div>
     </div>

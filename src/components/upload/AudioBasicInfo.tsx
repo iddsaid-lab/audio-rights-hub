@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { FormItem, FormLabel, FormDescription } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 
 const genres = [
   'Afrobeat', 'Bongo Flava', 'Taarab', 'Gospel', 'Hip Hop', 
@@ -27,10 +26,10 @@ const AudioBasicInfo = ({ audioData, updateAudioData }: AudioBasicInfoProps) => 
       </div>
       
       <div className="space-y-4">
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="title">
+        <div className="space-y-2">
+          <Label htmlFor="title">
             Audio Title <span className="text-red-500">*</span>
-          </FormLabel>
+          </Label>
           <Input
             id="title"
             value={audioData.title}
@@ -38,13 +37,13 @@ const AudioBasicInfo = ({ audioData, updateAudioData }: AudioBasicInfoProps) => 
             placeholder="e.g. African Sunset"
             required
           />
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             The official title of your audio work
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
         
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="genre">Genre</FormLabel>
+        <div className="space-y-2">
+          <Label htmlFor="genre">Genre</Label>
           <Select
             value={audioData.genre}
             onValueChange={(value) => updateAudioData({ genre: value })}
@@ -60,13 +59,13 @@ const AudioBasicInfo = ({ audioData, updateAudioData }: AudioBasicInfoProps) => 
               ))}
             </SelectContent>
           </Select>
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             The musical genre or style of your audio
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
         
-        <FormItem className="space-y-2">
-          <FormLabel htmlFor="description">Description</FormLabel>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
             value={audioData.description}
@@ -74,10 +73,10 @@ const AudioBasicInfo = ({ audioData, updateAudioData }: AudioBasicInfoProps) => 
             placeholder="Describe your audio work..."
             className="min-h-[100px]"
           />
-          <FormDescription>
+          <p className="text-sm text-muted-foreground">
             A brief description of your audio work, its inspiration, or meaning
-          </FormDescription>
-        </FormItem>
+          </p>
+        </div>
       </div>
     </div>
   );

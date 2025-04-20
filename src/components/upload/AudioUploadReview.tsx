@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { FormItem } from '@/components/ui/form';
 import { Music, Calendar, Tag, FileText, DollarSign, Info } from 'lucide-react';
 
 interface AudioUploadReviewProps {
@@ -135,7 +134,7 @@ const AudioUploadReview = ({ audioData, updateAudioData }: AudioUploadReviewProp
           </p>
         </div>
         
-        <FormItem className="flex items-start space-x-3 space-y-0">
+        <div className="flex items-start space-x-3 space-y-0">
           <Checkbox 
             id="agreement" 
             checked={audioData.agreementChecked}
@@ -153,7 +152,7 @@ const AudioUploadReview = ({ audioData, updateAudioData }: AudioUploadReviewProp
               of my copyright claim and possible legal consequences.
             </p>
           </div>
-        </FormItem>
+        </div>
       </div>
     </div>
   );
