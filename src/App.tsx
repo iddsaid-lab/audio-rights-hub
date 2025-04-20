@@ -29,6 +29,7 @@ import ArtistLicenses from "./pages/artist/Licenses";
 import ArtistPayments from "./pages/artist/Payments";
 import ArtistSettings from "./pages/artist/Settings";
 import UploadAudio from "./pages/artist/UploadAudio";
+import RequestLicense from "./pages/artist/RequestLicense";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -67,6 +68,7 @@ function App() {
               <Route path="/artist/upload-audio" element={<AppLayout><UploadAudio /></AppLayout>} />
               <Route path="/artist/copyrights" element={<AppLayout><ArtistCopyrights /></AppLayout>} />
               <Route path="/artist/licenses" element={<AppLayout><ArtistLicenses /></AppLayout>} />
+              <Route path="/artist/request-license" element={<AppLayout><RequestLicense /></AppLayout>} />
               <Route path="/artist/payments" element={<AppLayout><ArtistPayments /></AppLayout>} />
               <Route path="/artist/profile" element={<AppLayout><ArtistProfile /></AppLayout>} />
               <Route path="/artist/settings" element={<AppLayout><ArtistSettings /></AppLayout>} />

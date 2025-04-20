@@ -1,15 +1,19 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { mockLicenses } from '@/data/mockData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Calendar, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { FileText, Calendar, Clock, Download, Eye } from 'lucide-react';
+import LicenseCertificateCard from '@/components/licenses/LicenseCertificateCard';
+import { Link } from 'react-router-dom';
 
 const ArtistLicenses = () => {
   const { user } = useAuth();
+  const [selectedLicense, setSelectedLicense] = useState(null);
   
   // Get licenses for this artist (both as licensor and licensee)
   const artistLicenses = mockLicenses.filter(license => license.licenseeId === user?.id);
@@ -18,6 +22,22 @@ const ArtistLicenses = () => {
   const expiredLicenses = artistLicenses.filter(license => license.status === 'expired');
   const revokedLicenses = artistLicenses.filter(license => license.status === 'revoked');
   
+  // Convert license data to certificate format
+  const prepareLicenseCertificateData = (license) => {
+    return {
+      licenseId: license.id,
+      licenseType: license.licenseType,
+      licenseeName: license.licenseeName,
+      ownerName: license.ownerName || "Copyright Owner", // Fallback if not available
+      issueDate: license.issueDate,
+      expirationDate: license.expirationDate,
+      audioId: license.audioId,
+      restrictions: license.restrictions,
+      fee: license.fee,
+      blockchainAddress: license.blockchainAddress
+    };
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -25,10 +45,12 @@ const ArtistLicenses = () => {
           <h1 className="text-3xl font-bold">My Licenses</h1>
           <p className="text-gray-600">Manage your music licenses</p>
         </div>
-        <Button>
-          <FileText className="mr-2 h-4 w-4" />
-          Request New License
-        </Button>
+        <Link to="/artist/request-license">
+          <Button>
+            <FileText className="mr-2 h-4 w-4" />
+            Request New License
+          </Button>
+        </Link>
       </div>
       
       <Tabs defaultValue="all">
@@ -84,7 +106,7 @@ const ArtistLicenses = () => {
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Fee</h3>
-                          <p className="mt-1">${license.fee}</p>
+                          <p className="mt-1">TZS {license.fee.toLocaleString()}</p>
                         </div>
                       </div>
                       
@@ -96,10 +118,34 @@ const ArtistLicenses = () => {
                       )}
                       
                       <div className="flex space-x-2">
-                        <Button variant="outline" className="flex-1">
-                          <FileText className="mr-2 h-4 w-4" />
-                          View License
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => setSelectedLicense(prepareLicenseCertificateData(license))}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View License
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>License Certificate</DialogTitle>
+                              <DialogDescription>
+                                License #{license.id.substring(0, 8)} details
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedLicense && <LicenseCertificateCard license={selectedLicense} />}
+                            <div className="flex justify-end mt-4">
+                              <Button variant="outline">
+                                <Download className="mr-2 h-4 w-4" />
+                                Download Certificate
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        
                         {license.status === 'active' && (
                           <Button variant="outline" className="flex-1">
                             <Calendar className="mr-2 h-4 w-4" />
@@ -116,10 +162,12 @@ const ArtistLicenses = () => {
                 <FileText className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium">No licenses yet</h3>
                 <p className="mt-1 text-gray-500">Request a license to use other artists' work</p>
-                <Button className="mt-4">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Request License
-                </Button>
+                <Link to="/artist/request-license">
+                  <Button className="mt-4">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Request License
+                  </Button>
+                </Link>
               </div>
             )}
           </div>
@@ -130,7 +178,6 @@ const ArtistLicenses = () => {
             {activeLicenses.length > 0 ? (
               activeLicenses.map(license => (
                 <Card key={license.id}>
-                  {/* Same card content as in the all tab, but only for active licenses */}
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -161,7 +208,7 @@ const ArtistLicenses = () => {
                         </div>
                         <div>
                           <h3 className="text-sm font-medium text-gray-500">Fee</h3>
-                          <p className="mt-1">${license.fee}</p>
+                          <p className="mt-1">TZS {license.fee.toLocaleString()}</p>
                         </div>
                       </div>
                       
@@ -173,10 +220,33 @@ const ArtistLicenses = () => {
                       )}
                       
                       <div className="flex space-x-2">
-                        <Button variant="outline" className="flex-1">
-                          <FileText className="mr-2 h-4 w-4" />
-                          View License
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              className="flex-1"
+                              onClick={() => setSelectedLicense(prepareLicenseCertificateData(license))}
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              View License
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>License Certificate</DialogTitle>
+                              <DialogDescription>
+                                License #{license.id.substring(0, 8)} details
+                              </DialogDescription>
+                            </DialogHeader>
+                            {selectedLicense && <LicenseCertificateCard license={selectedLicense} />}
+                            <div className="flex justify-end mt-4">
+                              <Button variant="outline">
+                                <Download className="mr-2 h-4 w-4" />
+                                Download Certificate
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                         <Button variant="outline" className="flex-1">
                           <Calendar className="mr-2 h-4 w-4" />
                           Renew
@@ -306,6 +376,7 @@ const ArtistLicenses = () => {
           </div>
         </TabsContent>
       </Tabs>
+      
     </div>
   );
 };
