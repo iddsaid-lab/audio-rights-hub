@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,6 +28,7 @@ import ArtistCopyrights from "./pages/artist/Copyrights";
 import ArtistLicenses from "./pages/artist/Licenses";
 import ArtistPayments from "./pages/artist/Payments";
 import ArtistSettings from "./pages/artist/Settings";
+import UploadAudio from "./pages/artist/UploadAudio";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/Dashboard";
