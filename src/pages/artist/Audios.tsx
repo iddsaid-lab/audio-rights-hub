@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { mockAudios } from '@/data/mockData';
 import { Music, Upload, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 
 const ArtistAudios = () => {
   const { user } = useAuth();
@@ -25,10 +26,12 @@ const ArtistAudios = () => {
           <h1 className="text-3xl font-bold">My Audios</h1>
           <p className="text-gray-600">Manage your audio recordings</p>
         </div>
-        <Button>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload New Audio
-        </Button>
+        <Link to="/artist/upload-audio">
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload New Audio
+          </Button>
+        </Link>
       </div>
       
       <Tabs defaultValue="all">

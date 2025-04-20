@@ -1,9 +1,8 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
 // Layouts
@@ -41,55 +40,53 @@ import AdminApprovals from "./pages/admin/Approvals";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<MainLayout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/browse" element={<BrowseAudio />} />
-              <Route path="/audio/:id" element={<AudioDetail />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/register/success" element={<RegisterSuccess />} />
-            </Route>
-            
-            {/* Artist Routes */}
-            <Route path="/artist" element={<AppLayout />}>
-              <Route path="dashboard" element={<ArtistDashboard />} />
-              <Route path="profile" element={<ArtistProfile />} />
-              <Route path="audios" element={<ArtistAudios />} />
-              <Route path="copyrights" element={<ArtistCopyrights />} />
-              <Route path="licenses" element={<ArtistLicenses />} />
-              <Route path="payments" element={<ArtistPayments />} />
-              <Route path="settings" element={<ArtistSettings />} />
-            </Route>
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AppLayout />}>
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="artists" element={<AdminArtists />} />
-              <Route path="audios" element={<AdminAudios />} />
-              <Route path="verifications" element={<AdminVerifications />} />
-              <Route path="copyright-requests" element={<AdminCopyrightRequests />} />
-              <Route path="payments" element={<AdminPayments />} />
-              <Route path="approvals" element={<AdminApprovals />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route>
-            
-            {/* 404 Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Router>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+              <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+              <Route path="/browse" element={<MainLayout><BrowseAudio /></MainLayout>} />
+              <Route path="/audio/:id" element={<MainLayout><AudioDetail /></MainLayout>} />
+              <Route path="/login" element={<MainLayout><Login /></MainLayout>} />
+              <Route path="/register" element={<MainLayout><Register /></MainLayout>} />
+              <Route path="/register-success" element={<MainLayout><RegisterSuccess /></MainLayout>} />
+              
+              {/* Artist Routes */}
+              <Route path="/artist" element={<AppLayout><ArtistDashboard /></AppLayout>} />
+              <Route path="/artist/dashboard" element={<AppLayout><ArtistDashboard /></AppLayout>} />
+              <Route path="/artist/audios" element={<AppLayout><ArtistAudios /></AppLayout>} />
+              <Route path="/artist/upload-audio" element={<AppLayout><UploadAudio /></AppLayout>} />
+              <Route path="/artist/copyrights" element={<AppLayout><ArtistCopyrights /></AppLayout>} />
+              <Route path="/artist/licenses" element={<AppLayout><ArtistLicenses /></AppLayout>} />
+              <Route path="/artist/payments" element={<AppLayout><ArtistPayments /></AppLayout>} />
+              <Route path="/artist/profile" element={<AppLayout><ArtistProfile /></AppLayout>} />
+              <Route path="/artist/settings" element={<AppLayout><ArtistSettings /></AppLayout>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AppLayout><AdminDashboard /></AppLayout>} />
+              <Route path="/admin/dashboard" element={<AppLayout><AdminDashboard /></AppLayout>} />
+              <Route path="/admin/artists" element={<AppLayout><AdminArtists /></AppLayout>} />
+              <Route path="/admin/audios" element={<AppLayout><AdminAudios /></AppLayout>} />
+              <Route path="/admin/copyright-requests" element={<AppLayout><AdminCopyrightRequests /></AppLayout>} />
+              <Route path="/admin/approvals" element={<AppLayout><AdminApprovals /></AppLayout>} />
+              <Route path="/admin/verifications" element={<AppLayout><AdminVerifications /></AppLayout>} />
+              <Route path="/admin/payments" element={<AppLayout><AdminPayments /></AppLayout>} />
+              <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
+              
+              <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+            </Routes>
+          </Router>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
