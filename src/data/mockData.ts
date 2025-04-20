@@ -160,6 +160,7 @@ export const mockCopyrights: Copyright[] = [
     paymentAmount: 25000, // TZS
     paymentDate: '2023-02-18T14:30:00Z',
     approvedBy: 'user3',
+    registrationType: 'new',
     transfers: []
   },
   {
@@ -175,6 +176,7 @@ export const mockCopyrights: Copyright[] = [
     paymentAmount: 25000, // TZS
     paymentDate: '2023-04-22T15:45:00Z',
     approvedBy: 'user3',
+    registrationType: 'new',
     transfers: [
       {
         id: 'transfer1',
@@ -232,7 +234,8 @@ export const mockCopyrightRequests: CopyrightRequest[] = [
     submissionDate: '2023-05-25T10:30:00Z',
     status: 'pending',
     paymentStatus: 'pending',
-    paymentAmount: 25000 // TZS
+    paymentAmount: 25000, // TZS
+    requestType: 'new'
   },
   {
     id: 'request2',
@@ -241,7 +244,8 @@ export const mockCopyrightRequests: CopyrightRequest[] = [
     submissionDate: '2023-07-02T15:45:00Z',
     status: 'pending',
     paymentStatus: 'pending',
-    paymentAmount: 25000 // TZS
+    paymentAmount: 25000, // TZS
+    requestType: 'new'
   }
 ];
 
@@ -258,3 +262,4 @@ export const formatDuration = (seconds: number): string => {
   const remainingSeconds = seconds % 60;
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
+
