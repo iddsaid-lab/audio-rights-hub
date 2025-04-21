@@ -5,8 +5,9 @@ import { useAuth } from '@/context/AuthContext';
 import { mockCopyrights } from '@/data/mockData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileCheck, FilePlus, Calendar, Clock } from 'lucide-react';
+import { FileCheck, FilePlus, Calendar, Clock, Download, Eye } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const ArtistCopyrights = () => {
   const { user } = useAuth();
@@ -21,6 +22,10 @@ const ArtistCopyrights = () => {
   
   const handleRegisterNewCopyright = () => {
     navigate('/artist/upload-audio');
+  };
+  
+  const handleDownloadCertificate = (registrationNumber: string) => {
+    console.log('Downloading certificate:', registrationNumber);
   };
   
   return (
@@ -99,10 +104,58 @@ const ArtistCopyrights = () => {
                       </div>
                       
                       <div className="flex space-x-2">
-                        <Button variant="outline" className="flex-1">
-                          <FileCheck className="mr-2 h-4 w-4" />
-                          View Certificate
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="flex-1">
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Certificate
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>Copyright Certificate</DialogTitle>
+                              <DialogDescription>
+                                Registration #{copyright.registrationNumber}
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="p-6 border rounded-lg">
+                              <div className="space-y-4">
+                                <div className="text-center mb-6">
+                                  <h2 className="text-2xl font-bold">Copyright Certificate</h2>
+                                  <p className="text-gray-600">Registration #{copyright.registrationNumber}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Audio ID</h3>
+                                    <p className="mt-1">{copyright.audioId}</p>
+                                  </div>
+                                  <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Owner</h3>
+                                    <p className="mt-1">{copyright.ownerName}</p>
+                                  </div>
+                                  <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Registration Date</h3>
+                                    <p className="mt-1">{new Date(copyright.registrationDate).toLocaleDateString()}</p>
+                                  </div>
+                                  <div>
+                                    <h3 className="text-sm font-medium text-gray-500">Expiration Date</h3>
+                                    <p className="mt-1">{new Date(copyright.expirationDate).toLocaleDateString()}</p>
+                                  </div>
+                                </div>
+                                <div className="mt-6 flex justify-end">
+                                  <Button 
+                                    variant="outline"
+                                    onClick={() => handleDownloadCertificate(copyright.registrationNumber)}
+                                  >
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download Certificate
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        
                         <Button variant="outline" className="flex-1">
                           <Calendar className="mr-2 h-4 w-4" />
                           Renew
