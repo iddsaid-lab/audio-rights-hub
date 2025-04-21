@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Clock } from 'lucide-react';
 import LicenseCard from '@/components/licenses/LicenseCard';
 import { Link } from 'react-router-dom';
+import { License } from '@/types';
 
 const ArtistLicenses = () => {
   const { user } = useAuth();
@@ -20,12 +21,13 @@ const ArtistLicenses = () => {
   const revokedLicenses = artistLicenses.filter(license => license.status === 'revoked');
   
   // Convert license data to certificate format
-  const prepareLicenseCertificateData = (license) => {
+  const prepareLicenseCertificateData = (license: License) => {
+    // Get the owner name from the license or use a default value
     return {
       licenseId: license.id,
       licenseType: license.licenseType,
       licenseeName: license.licenseeName,
-      ownerName: license.ownerName || "Copyright Owner",
+      ownerName: "Copyright Owner", // Add a default owner name
       issueDate: license.issueDate,
       expirationDate: license.expirationDate,
       audioId: license.audioId,
@@ -64,7 +66,7 @@ const ArtistLicenses = () => {
               artistLicenses.map(license => (
                 <LicenseCard
                   key={license.id}
-                  license={license}
+                  license={{...license, ownerName: "Copyright Owner"}}
                   onViewCertificate={(license) => setSelectedLicense(prepareLicenseCertificateData(license))}
                   selectedLicense={selectedLicense}
                 />
@@ -91,7 +93,7 @@ const ArtistLicenses = () => {
               activeLicenses.map(license => (
                 <LicenseCard
                   key={license.id}
-                  license={license}
+                  license={{...license, ownerName: "Copyright Owner"}}
                   onViewCertificate={(license) => setSelectedLicense(prepareLicenseCertificateData(license))}
                   selectedLicense={selectedLicense}
                 />
@@ -112,7 +114,7 @@ const ArtistLicenses = () => {
               expiredLicenses.map(license => (
                 <LicenseCard
                   key={license.id}
-                  license={license}
+                  license={{...license, ownerName: "Copyright Owner"}}
                   onViewCertificate={(license) => setSelectedLicense(prepareLicenseCertificateData(license))}
                   selectedLicense={selectedLicense}
                 />
@@ -133,7 +135,7 @@ const ArtistLicenses = () => {
               revokedLicenses.map(license => (
                 <LicenseCard
                   key={license.id}
-                  license={license}
+                  license={{...license, ownerName: "Copyright Owner"}}
                   onViewCertificate={(license) => setSelectedLicense(prepareLicenseCertificateData(license))}
                   selectedLicense={selectedLicense}
                 />

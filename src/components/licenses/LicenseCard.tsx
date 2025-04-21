@@ -17,7 +17,7 @@ interface LicenseCardProps {
     expirationDate: string;
     fee: number;
     restrictions?: string;
-    ownerName: string;
+    ownerName?: string; // Made optional
     licenseeName: string;
     blockchainAddress?: string;
   };
