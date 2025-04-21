@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,11 @@ import { mockCopyrights } from '@/data/mockData';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck, FilePlus, Calendar, Clock } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ArtistCopyrights = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Filter copyrights for the current artist
   const artistCopyrights = mockCopyrights.filter(copyright => copyright.ownerId === user?.id);
@@ -18,6 +19,10 @@ const ArtistCopyrights = () => {
   const pendingCopyrights = artistCopyrights.filter(copyright => copyright.status === 'pending');
   const expiredCopyrights = artistCopyrights.filter(copyright => copyright.status === 'expired');
   
+  const handleRegisterNewCopyright = () => {
+    navigate('/artist/upload-audio');
+  };
+  
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -25,7 +30,7 @@ const ArtistCopyrights = () => {
           <h1 className="text-3xl font-bold">My Copyrights</h1>
           <p className="text-gray-600">Manage your registered copyrights</p>
         </div>
-        <Button>
+        <Button onClick={handleRegisterNewCopyright}>
           <FilePlus className="mr-2 h-4 w-4" />
           Register New Copyright
         </Button>
@@ -112,7 +117,7 @@ const ArtistCopyrights = () => {
                 <FileCheck className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium">No copyrights yet</h3>
                 <p className="mt-1 text-gray-500">Register your first copyright to protect your work</p>
-                <Button className="mt-4">
+                <Button className="mt-4" onClick={handleRegisterNewCopyright}>
                   <FilePlus className="mr-2 h-4 w-4" />
                   Register Copyright
                 </Button>
@@ -126,7 +131,6 @@ const ArtistCopyrights = () => {
             {activeCopyrights.length > 0 ? (
               activeCopyrights.map(copyright => (
                 <Card key={copyright.id}>
-                  {/* Same card content as above */}
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -141,7 +145,6 @@ const ArtistCopyrights = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {/* Same content as in the all tab */}
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-sm font-medium text-gray-500">Audio ID</h3>
@@ -188,7 +191,6 @@ const ArtistCopyrights = () => {
         </TabsContent>
         
         <TabsContent value="pending">
-          {/* Similar structure to "active" tab but with pending copyrights */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {pendingCopyrights.length > 0 ? (
               pendingCopyrights.map(copyright => (
@@ -243,7 +245,6 @@ const ArtistCopyrights = () => {
         </TabsContent>
         
         <TabsContent value="expired">
-          {/* Similar structure to "active" tab but with expired copyrights */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {expiredCopyrights.length > 0 ? (
               expiredCopyrights.map(copyright => (
