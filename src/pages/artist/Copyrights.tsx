@@ -7,11 +7,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck, FilePlus, Calendar, Clock, Download, Eye } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const ArtistCopyrights = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Filter copyrights for the current artist
   const artistCopyrights = mockCopyrights.filter(copyright => copyright.ownerId === user?.id);
@@ -26,6 +28,18 @@ const ArtistCopyrights = () => {
   
   const handleDownloadCertificate = (registrationNumber: string) => {
     console.log('Downloading certificate:', registrationNumber);
+    toast({
+      title: "Certificate Download Started",
+      description: `Downloading certificate ${registrationNumber}`,
+    });
+  };
+
+  const handleRenewalRequest = (copyrightId: string) => {
+    console.log('Processing renewal for:', copyrightId);
+    toast({
+      title: "Renewal Request Submitted",
+      description: "Your copyright renewal request has been submitted for processing.",
+    });
   };
   
   return (
@@ -156,10 +170,45 @@ const ArtistCopyrights = () => {
                           </DialogContent>
                         </Dialog>
                         
-                        <Button variant="outline" className="flex-1">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          Renew
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" className="flex-1">
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Renew
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Renew Copyright</DialogTitle>
+                              <DialogDescription>
+                                Extend the protection of your copyright for another term.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <h3 className="text-sm font-medium text-gray-500">Current Expiration</h3>
+                                  <p className="mt-1">{new Date(copyright.expirationDate).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                  <h3 className="text-sm font-medium text-gray-500">New Expiration</h3>
+                                  <p className="mt-1">{new Date(new Date(copyright.expirationDate).setFullYear(new Date(copyright.expirationDate).getFullYear() + 1)).toLocaleDateString()}</p>
+                                </div>
+                              </div>
+                              <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                                <p className="text-sm text-amber-800">
+                                  Renewing your copyright will extend its protection for another year. A processing fee may apply.
+                                </p>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" className="w-full" onClick={() => handleRenewalRequest(copyright.id)}>
+                                <Calendar className="mr-2 h-4 w-4" />
+                                Submit Renewal Request
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
                   </CardContent>
