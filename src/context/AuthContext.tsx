@@ -1,7 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { User } from '../types';
-import { mockLogin, mockUsers } from '../data/mockData';
+import ApiService from '../services/ApiService';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -30,14 +30,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem('audioRightsUser');
     if (savedUser) {
       try {
-        const parsedUser = JSON.parse(savedUser);
-        // Verify this user still exists in our "database"
-        const existingUser = mockUsers.find(u => u.id === parsedUser.id);
-        if (existingUser) {
-          setUser(existingUser);
-        } else {
-          localStorage.removeItem('audioRightsUser');
-        }
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed.user);
       } catch (e) {
         localStorage.removeItem('audioRightsUser');
       }
@@ -48,17 +42,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate network request
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const loggedInUser = mockLogin(email, password);
-      
-      if (loggedInUser) {
-        setUser(loggedInUser);
-        localStorage.setItem('audioRightsUser', JSON.stringify(loggedInUser));
+      const result = await ApiService.login({ email, password });
+      if (result && result.user && result.token) {
+        setUser(result.user);
+        localStorage.setItem('audioRightsUser', JSON.stringify({ user: result.user, token: result.token }));
         toast({
           title: "Logged in successfully",
-          description: `Welcome back, ${loggedInUser.fullName}!`,
+          description: `Welcome back, ${result.user.fullName || result.user.email}!`,
         });
         return true;
       } else {
@@ -69,10 +59,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Login error",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
       return false;

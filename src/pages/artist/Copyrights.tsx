@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { mockCopyrights } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { FileCheck, FilePlus, Calendar, Clock, Download, Eye } from 'lucide-react';
@@ -15,9 +16,20 @@ const ArtistCopyrights = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Filter copyrights for the current artist
-  const artistCopyrights = mockCopyrights.filter(copyright => copyright.ownerId === user?.id);
-  
+  // Fetch copyrights for the current artist from backend
+  const [artistCopyrights, setArtistCopyrights] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+    ApiService.getMyCopyrights()
+      .then((data) => {
+        setArtistCopyrights(data);
+      })
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
   const activeCopyrights = artistCopyrights.filter(copyright => copyright.status === 'active');
   const pendingCopyrights = artistCopyrights.filter(copyright => copyright.status === 'pending');
   const expiredCopyrights = artistCopyrights.filter(copyright => copyright.status === 'expired');

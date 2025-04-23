@@ -5,18 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MusicIcon, Search, ArrowRight, Shield, FileCheck, User } from 'lucide-react';
 import AudioCard from '@/components/audio/AudioCard';
-import { mockAudios } from '@/data/mockData';
 import AudioPlayer from '@/components/audio/AudioPlayer';
+import { useEffect } from 'react';
+import ApiService from '../services/ApiService';
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAudio, setSelectedAudio] = useState(mockAudios[0]);
+  const [audios, setAudios] = useState<any[]>([]);
+  const [selectedAudio, setSelectedAudio] = useState<any | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const featuredAudios = mockAudios.slice(0, 4);
+  useEffect(() => {
+    ApiService.getAllCopyrights()
+      .then((data) => {
+        setAudios(data);
+        if (data && data.length > 0) setSelectedAudio(data[0]);
+      })
+      .catch(() => setAudios([]));
+  }, []);
+
+  const featuredAudios = audios.slice(0, 4);
 
   const handleAudioPlay = (audioId: string) => {
-    const audio = mockAudios.find(a => a.id === audioId);
+    const audio = audios.find(a => a.id === audioId);
     if (audio) {
       setSelectedAudio(audio);
       setIsPlaying(true);
@@ -84,12 +95,12 @@ const Index = () => {
                 key={audio.id}
                 id={audio.id}
                 title={audio.title}
-                artist={audio.artistName}
-                coverArt={audio.coverArt}
-                duration={audio.duration}
-                genre={audio.genre}
-                copyrightStatus={audio.copyrightStatus}
-                playCount={audio.playCount}
+                artist={audio.artistName || audio.artistId || 'Unknown'}
+                coverArt={audio.coverArt || ''}
+                duration={audio.duration || ''}
+                genre={audio.genre || ''}
+                copyrightStatus={audio.status || 'unknown'}
+                playCount={audio.playCount || 0}
                 onPlay={() => handleAudioPlay(audio.id)}
               />
             ))}
@@ -101,8 +112,8 @@ const Index = () => {
               <AudioPlayer
                 audioUrl={selectedAudio.audioUrl}
                 title={selectedAudio.title}
-                artist={selectedAudio.artistName}
-                coverArt={selectedAudio.coverArt}
+                artist={selectedAudio.artistName || selectedAudio.artistId || 'Unknown'}
+                coverArt={selectedAudio.coverArt || ''}
                 onEnded={() => setIsPlaying(false)}
               />
             </div>

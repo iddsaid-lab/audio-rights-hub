@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockArtistProfiles } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Wallet, Copy } from 'lucide-react';
@@ -14,21 +14,37 @@ const ArtistProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Find artist profile data
-  const artistProfile = mockArtistProfiles.find(profile => profile.userId === user?.id);
-  
+  // Fetch artist profile data from backend
+  const [artistProfile, setArtistProfile] = useState<any | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    fullName: artistProfile?.fullName || user?.fullName || '',
-    dateOfBirth: artistProfile?.dateOfBirth || '',
-    address: artistProfile?.address || '',
-    phoneNumber: artistProfile?.phoneNumber || '',
-    nationalIdNumber: artistProfile?.nationalIdNumber || '',
-    passportNumber: artistProfile?.passportNumber || '',
-    previousWorkUrl: artistProfile?.previousWorkUrl || '',
+    fullName: user?.fullName || '',
+    dateOfBirth: '',
+    address: '',
+    phoneNumber: '',
+    nationalIdNumber: '',
+    passportNumber: '',
+    previousWorkUrl: '',
   });
 
-  // Sample blockchain wallet address for demo
+  // Fetch profile on mount
+  React.useEffect(() => {
+    ApiService.getMyProfile()
+      .then(profile => {
+        setArtistProfile(profile);
+        setFormData({
+          fullName: profile?.fullName || user?.fullName || '',
+          dateOfBirth: profile?.dateOfBirth || '',
+          address: profile?.address || '',
+          phoneNumber: profile?.phoneNumber || '',
+          nationalIdNumber: profile?.nationalIdNumber || '',
+          passportNumber: profile?.passportNumber || '',
+          previousWorkUrl: profile?.previousWorkUrl || '',
+        });
+      })
+      .catch(() => setArtistProfile(null));
+  }, [user?.id]);
+
   const walletAddress = artistProfile?.walletAddress || "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9";
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

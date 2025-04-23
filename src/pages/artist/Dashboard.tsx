@@ -6,20 +6,36 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
 import { Music, FileCheck, AlertCircle, Clock, Upload, Play, BarChart3 } from 'lucide-react';
-import { mockAudios, mockCopyrights } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
+import { useEffect, useState } from 'react';
 
 const ArtistDashboard = () => {
   const { user } = useAuth();
   
-  // Filter data for the current user
-  const userAudios = mockAudios.filter(audio => audio.artistId === user?.id);
-  const userCopyrights = mockCopyrights.filter(copyright => copyright.ownerId === user?.id);
-  
-  const pendingAudios = userAudios.filter(audio => audio.copyrightStatus === 'pending');
-  const approvedAudios = userAudios.filter(audio => audio.copyrightStatus === 'approved');
-  
+  // Fetch user's audios and copyrights from backend
+  const [userAudios, setUserAudios] = useState<any[]>([]);
+  const [userCopyrights, setUserCopyrights] = useState<any[]>([]);
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchData = async () => {
+      try {
+        const [audios, copyrights] = await Promise.all([
+          ApiService.getMyAudios(),
+          ApiService.getMyCopyrights()
+        ]);
+        setUserAudios(audios);
+        setUserCopyrights(copyrights);
+      } catch (err) {
+        // Optionally handle error
+      }
+    };
+    fetchData();
+  }, [user?.id]);
+
+  const pendingAudios = userAudios.filter(audio => audio.copyrightStatus === 'pending' || audio.status === 'pending');
+  const approvedAudios = userAudios.filter(audio => audio.copyrightStatus === 'approved' || audio.status === 'active');
   // Calculate stats
-  const totalPlays = userAudios.reduce((sum, audio) => sum + audio.playCount, 0);
+  const totalPlays = userAudios.reduce((sum, audio) => sum + (audio.playCount || 0), 0);
   
   return (
     <div>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
-import { mockAudios } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
 import { Music, Upload, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
@@ -12,11 +12,20 @@ import { Link } from 'react-router-dom';
 const ArtistAudios = () => {
   const { user } = useAuth();
   
-  // Filter audios for the current artist
-  const artistAudios = mockAudios.filter(audio => audio.artistId === user?.id);
-  
-  const pendingAudios = artistAudios.filter(audio => audio.copyrightStatus === 'pending');
-  const approvedAudios = artistAudios.filter(audio => audio.copyrightStatus === 'approved');
+  // Fetch audios for the current artist from backend
+  const [artistAudios, setArtistAudios] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+    ApiService.getMyAudios()
+      .then((data) => setArtistAudios(data))
+      .finally(() => setLoading(false));
+  }, [user?.id]);
+
+  const pendingAudios = artistAudios.filter(audio => audio.copyrightStatus === 'pending' || audio.status === 'pending');
+  const approvedAudios = artistAudios.filter(audio => audio.copyrightStatus === 'approved' || audio.status === 'active');
   const rejectedAudios = artistAudios.filter(audio => audio.copyrightStatus === 'rejected');
   
   return (

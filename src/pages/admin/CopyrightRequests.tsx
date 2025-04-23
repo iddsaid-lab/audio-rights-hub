@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import React, { useState } from 'react';import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockCopyrightRequests, mockAudios } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
+import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle, 

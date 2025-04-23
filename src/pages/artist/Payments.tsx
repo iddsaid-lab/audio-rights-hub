@@ -3,7 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
-import { mockCopyrightRequests } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, CreditCard, FileText, Clock, AlertCircle } from 'lucide-react';
@@ -11,9 +12,14 @@ import { DollarSign, CreditCard, FileText, Clock, AlertCircle } from 'lucide-rea
 const ArtistPayments = () => {
   const { user } = useAuth();
   
-  // Filter payment records for the current artist
-  const artistPayments = mockCopyrightRequests.filter(req => req.artistId === user?.id);
-  
+  // Fetch payment records for the current artist from backend
+  const [artistPayments, setArtistPayments] = useState<any[]>([]);
+  useEffect(() => {
+    ApiService.getPayments().then((data) => {
+      setArtistPayments(data.filter((req: any) => req.artistId === user?.id));
+    });
+  }, [user?.id]);
+
   const pendingPayments = artistPayments.filter(req => req.paymentStatus === 'pending');
   const completedPayments = artistPayments.filter(req => req.paymentStatus !== 'pending');
   

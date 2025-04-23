@@ -92,17 +92,38 @@ const UploadAudio = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = () => {
-    // In a real app, this would make an API call to submit the data
-    toast({
-      title: "Audio submitted successfully",
-      description: "Your audio has been uploaded and is pending copyright registration",
-    });
-    
-    // Navigate back to audios page
-    setTimeout(() => {
-      navigate('/artist/audios');
-    }, 1500);
+  const handleSubmit = async () => {
+    try {
+      // Prepare FormData for file upload
+      const formData = new FormData();
+      formData.append('type', audioData.requestType); // Map to backend expected field
+      formData.append('title', audioData.title);
+      formData.append('description', audioData.description);
+      if (audioData.audioFile) formData.append('audio', audioData.audioFile);
+      formData.append('allowLicensing', String(audioData.allowLicensing));
+      formData.append('licensingPrice', String(audioData.licensingPrice));
+      if (audioData.previousCopyrightId) formData.append('previousCopyrightId', audioData.previousCopyrightId);
+      formData.append('notes', ''); // Placeholder, add UI if needed
+      // Only send fields required by backend
+
+      // Get token from localStorage
+      const saved = localStorage.getItem('audioRightsUser');
+      const token = saved ? JSON.parse(saved).token : '';
+      await (await import('../../services/ApiService')).default.submitCopyright(formData, token);
+      toast({
+        title: "Audio submitted successfully",
+        description: "Your audio has been uploaded and is pending copyright registration",
+      });
+      setTimeout(() => {
+        navigate('/artist/audios');
+      }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Submission failed",
+        description: error.message || 'There was an error submitting your audio. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const CurrentStepComponent = steps.find(step => step.id === currentStep)?.component || steps[0].component;

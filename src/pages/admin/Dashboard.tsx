@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { Users, Music, FileCheck, Shield, User, UserCheck, AlertCircle, DollarSign, CheckSquare, CreditCard } from 'lucide-react';
-import { mockAudios, mockArtistProfiles, mockVerificationRequests, mockCopyrightRequests } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
@@ -13,11 +14,25 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
+  // Real data state
+  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [copyrightRequests, setCopyrightRequests] = useState<any[]>([]);
+  const [artistProfiles, setArtistProfiles] = useState<any[]>([]);
+  const [audios, setAudios] = useState<any[]>([]);
+
+  // Fetch all data on mount
+  useEffect(() => {
+    ApiService.getAllCopyrights().then(setCopyrightRequests).catch(() => setCopyrightRequests([]));
+    ApiService.getAllVerificationRequests().then(setVerificationRequests).catch(() => setVerificationRequests([]));
+    ApiService.getAllArtistProfiles().then(setArtistProfiles).catch(() => setArtistProfiles([]));
+    ApiService.getAllAudios().then(setAudios).catch(() => setAudios([]));
+  }, []);
+
   // Calculate stats
-  const pendingVerifications = mockVerificationRequests.filter(req => req.status === 'pending').length;
-  const pendingCopyrightRequests = mockCopyrightRequests.filter(req => req.status === 'pending').length;
-  const totalArtists = mockArtistProfiles.length;
-  const totalAudios = mockAudios.length;
+  const pendingVerifications = verificationRequests.filter(req => req.status === 'pending').length;
+  const pendingCopyrightRequests = copyrightRequests.filter(req => req.status === 'pending').length;
+  const totalArtists = artistProfiles.length;
+  const totalAudios = audios.length;
   
   // Handler for artist verification button
   const handleVerificationReview = (artistId: string) => {
@@ -124,8 +139,8 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {mockCopyrightRequests.filter(req => req.status === 'pending').map((req) => {
-              const audio = mockAudios.find(a => a.id === req.audioId);
+            {copyrightRequests.filter(req => req.status === 'pending').map((req) => {
+              const audio = audios.find(a => a.id === req.audioId);
               
               return (
                 <div key={req.id} className="py-3 flex items-center justify-between">
@@ -232,7 +247,7 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {mockVerificationRequests.filter(req => req.status === 'pending').map((req) => (
+            {verificationRequests.filter(req => req.status === 'pending').map((req) => (
               <div key={req.artistId} className="py-3 flex items-center justify-between">
                 <div className="flex items-center">
                   <div className="h-10 w-10 bg-amber-100 rounded-full flex items-center justify-center mr-3">
@@ -273,8 +288,8 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {mockCopyrightRequests.filter(req => req.status === 'pending').map((req) => {
-              const audio = mockAudios.find(a => a.id === req.audioId);
+            {copyrightRequests.filter(req => req.status === 'pending').map((req) => {
+              const audio = audios.find(a => a.id === req.audioId);
               
               return (
                 <div key={req.id} className="py-3 flex items-center justify-between">
@@ -322,7 +337,7 @@ const AdminDashboard = () => {
               <div>
                 <p className="text-sm font-medium text-gray-500">Pending Payments</p>
                 <h3 className="text-3xl font-bold mt-2">
-                  {mockCopyrightRequests.filter(req => req.paymentStatus === 'pending').length}
+                  {copyrightRequests.filter(req => req.paymentStatus === 'pending').length}
                 </h3>
               </div>
               <div className="h-10 w-10 bg-blue-100 rounded-md flex items-center justify-center">
@@ -369,9 +384,9 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {mockCopyrightRequests.filter(req => req.paymentStatus === 'pending').map((req) => {
-              const audio = mockAudios.find(a => a.id === req.audioId);
-              const artist = mockArtistProfiles.find(a => a.userId === req.artistId);
+            {copyrightRequests.filter(req => req.paymentStatus === 'pending').map((req) => {
+              const audio = audios.find(a => a.id === req.audioId);
+              const artist = artistProfiles.find(a => a.userId === req.artistId);
               
               return (
                 <div key={req.id} className="py-3 flex items-center justify-between">
@@ -399,7 +414,7 @@ const AdminDashboard = () => {
               );
             })}
             
-            {mockCopyrightRequests.filter(req => req.paymentStatus === 'pending').length === 0 && (
+            {copyrightRequests.filter(req => req.paymentStatus === 'pending').length === 0 && (
               <div className="py-8 text-center">
                 <AlertCircle className="h-10 w-10 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500">No pending payments at the moment</p>
@@ -417,9 +432,8 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="divide-y">
-            {mockCopyrightRequests.filter(req => req.paymentStatus === 'paid').slice(0, 5).map((req) => {
-              const audio = mockAudios.find(a => a.id === req.audioId);
-              
+            {copyrightRequests.filter(req => req.paymentStatus === 'paid').slice(0, 5).map((req) => {
+              const audio = audios.find(a => a.id === req.audioId);
               return (
                 <div key={req.id} className="py-3 flex items-center justify-between">
                   <div className="flex items-center">
@@ -439,8 +453,7 @@ const AdminDashboard = () => {
                 </div>
               );
             })}
-            
-            {mockCopyrightRequests.filter(req => req.paymentStatus === 'paid').length === 0 && (
+            {copyrightRequests.filter(req => req.paymentStatus === 'paid').length === 0 && (
               <div className="py-8 text-center">
                 <AlertCircle className="h-10 w-10 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500">No recent payments</p>

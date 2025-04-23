@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { mockCopyrightRequests, mockAudios } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, XCircle, Clock, Music, FileCheck, Play as PlayIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,19 +12,26 @@ import { Textarea } from '@/components/ui/textarea';
 import AudioPlayer from '@/components/audio/AudioPlayer';
 
 const AdminApprovals = () => {
+  const [audios, setAudios] = useState<any[]>([]);
+  const [copyrightRequests, setCopyrightRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    ApiService.getAllAudios().then(setAudios).catch(() => setAudios([]));
+    ApiService.getAllCopyrights().then(setCopyrightRequests).catch(() => setCopyrightRequests([]));
+  }, []);
   const { user } = useAuth();
   const { toast } = useToast();
   const [isRejectDialogOpen, setIsRejectDialogOpen] = React.useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = React.useState(false);
   const [isPlayDialogOpen, setIsPlayDialogOpen] = React.useState(false);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | null>(null);
-  const [selectedAudio, setSelectedAudio] = React.useState<typeof mockAudios[0] | null>(null);
+  const [selectedAudio, setSelectedAudio] = React.useState<typeof audios[0] | null>(null);
   const [rejectionReason, setRejectionReason] = React.useState('');
   
   const isManager = user?.role === 'manager';
   
   // Filter for copyright requests that have been paid but not yet approved or rejected
-  const pendingApprovals = mockCopyrightRequests.filter(
+  const pendingApprovals = copyrightRequests.filter(
     req => req.status === 'pending' && req.paymentStatus !== 'pending'
   );
   
@@ -69,7 +76,7 @@ const AdminApprovals = () => {
   };
   
   const getAudio = (audioId: string) => {
-    return mockAudios.find(audio => audio.id === audioId);
+    return audios.find(audio => audio.id === audioId);
   };
 
   const openDetailsDialog = (requestId: string) => {
@@ -165,7 +172,7 @@ const AdminApprovals = () => {
                           </div>
                           <div>
                             <h3 className="text-sm font-medium text-gray-500">Upload Date</h3>
-                            <p className="mt-1">{audio?.uploadDate ? new Date(audio.uploadDate).toLocaleDateString() : 'Unknown'}</p>
+                            <p className="mt-1">{audio?.createdAt ? new Date(audio.createdAt).toLocaleDateString() : 'Unknown'}</p>
                           </div>
                           <div>
                             <h3 className="text-sm font-medium text-gray-500">Payment Status</h3>

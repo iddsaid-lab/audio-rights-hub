@@ -80,20 +80,31 @@ const Register = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      // Integrate real API call
+      const ApiService = (await import('../services/ApiService')).default;
+      await ApiService.register({
+        fullName: data.fullName,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        dateOfBirth: data.dateOfBirth,
+        address: data.address,
+        phoneNumber: data.phoneNumber,
+        nationalIdNumber: data.nationalIdNumber,
+        passportNumber: data.passportNumber,
+        previousWorkUrl: data.previousWorkUrl,
+        agreement: data.agreement,
+        role: 'artist'
+      });
       toast({
         title: "Registration submitted successfully!",
-        description: "Your artist application has been received and is pending review.",
+        description: "A verification email has been sent. Please check your inbox.",
       });
-      
-      // Navigate to success page or login
       navigate('/register/success');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Registration failed",
-        description: "There was an error submitting your registration. Please try again.",
+        description: error.message || "There was an error submitting your registration. Please try again.",
         variant: "destructive",
       });
     } finally {
