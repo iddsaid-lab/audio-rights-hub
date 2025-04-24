@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockAudios } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
 import { Badge } from '@/components/ui/badge';
 import { Search, Play, Music, FileCheck, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -17,16 +17,24 @@ const AdminAudios = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [isPlayDialogOpen, setIsPlayDialogOpen] = useState(false);
-  const [selectedAudio, setSelectedAudio] = useState<typeof mockAudios[0] | null>(null);
+  const [selectedAudio, setSelectedAudio] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
+  const [audios, setAudios] = useState<any[]>([]);
   const { toast } = useToast();
-  
+
+  // Fetch audios from backend
+  React.useEffect(() => {
+    ApiService.getAllAudios()
+      .then(setAudios)
+      .catch(() => setAudios([]));
+  }, []);
+
   // Filter audios based on search query
-  const filteredAudios = mockAudios.filter(audio => 
-    audio.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    audio.artistName.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAudios = audios.filter(audio => 
+    audio.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    audio.artistName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
+
   const approvedAudios = filteredAudios.filter(audio => audio.copyrightStatus === 'approved');
   const pendingAudios = filteredAudios.filter(audio => audio.copyrightStatus === 'pending');
   const rejectedAudios = filteredAudios.filter(audio => audio.copyrightStatus === 'rejected');
@@ -39,12 +47,12 @@ const AdminAudios = () => {
         ? pendingAudios 
         : rejectedAudios;
 
-  const openPlayDialog = (audio: typeof mockAudios[0]) => {
+  const openPlayDialog = (audio: any) => {
     setSelectedAudio(audio);
     setIsPlayDialogOpen(true);
   };
 
-  const openReviewDialog = (audio: typeof mockAudios[0]) => {
+  const openReviewDialog = (audio: any) => {
     setSelectedAudio(audio);
     setReviewNotes('');
     setIsReviewDialogOpen(true);
@@ -73,7 +81,7 @@ const AdminAudios = () => {
     setIsReviewDialogOpen(false);
   };
 
-  const handleDetailsClick = (audio: typeof mockAudios[0]) => {
+  const handleDetailsClick = (audio: any) => {
     toast({
       title: "Audio Details",
       description: `Viewing details for "${audio.title}"`,

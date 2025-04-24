@@ -36,7 +36,16 @@ const AdminCopyrightRequests = () => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isPlayDialogOpen, setIsPlayDialogOpen] = useState(false);
-  const [selectedAudio, setSelectedAudio] = useState<typeof mockAudios[0] | null>(null);
+  // Combined copyright+audio objects
+  const [copyrightAudioPairs, setCopyrightAudioPairs] = useState<any[]>([]);
+  const [selectedAudio, setSelectedAudio] = useState<any | null>(null);
+
+  useEffect(() => {
+    ApiService.getAllCopyrightsWithAudio()
+      .then(setCopyrightAudioPairs)
+      .catch(() => setCopyrightAudioPairs([]));
+  }, []);
+
   const [isBlockchainDialogOpen, setIsBlockchainDialogOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [blockchainAddress, setBlockchainAddress] = useState<string | null>(null);
@@ -63,11 +72,10 @@ const AdminCopyrightRequests = () => {
   const canProcess = isOfficer || isManager;
   const canPublishToBlockchain = isManager;
   
-  const pendingRequests = mockCopyrightRequests.filter(req => req.status === 'pending');
-  const escalatedRequests = mockCopyrightRequests.filter(req => req.status === 'escalated');
-  const processedRequests = mockCopyrightRequests.filter(req => 
-    req.status !== 'pending' && req.status !== 'escalated'
-  );
+  // Helper arrays for filtering
+  const pendingRequests = copyrightAudioPairs.filter(pair => pair.copyright.status === 'pending');
+  const escalatedRequests = copyrightAudioPairs.filter(pair => pair.copyright.status === 'escalated');
+  const processedRequests = copyrightAudioPairs.filter(pair => pair.copyright.status !== 'pending' && pair.copyright.status !== 'escalated');
   
   const handleApprove = (requestId: string) => {
     if (!canProcess) {
@@ -92,36 +100,55 @@ const AdminCopyrightRequests = () => {
   
   const startHashGeneration = async () => {
     if (!selectedRequestId) return;
-    
     setHashGenerationProgress(0);
     setGeneratedHash(null);
-    
-    // Simulate hash generation process
-    const interval = setInterval(() => {
-      setHashGenerationProgress(prev => {
-        const newProgress = prev + Math.random() * 15;
-        return newProgress >= 100 ? 100 : newProgress;
+
+    // Find the audio file associated with the selected copyright request
+    const copyrightAudioPair = copyrightAudioPairs.find(pair => pair.copyright.id === selectedRequestId);
+    if (!copyrightAudioPair || !copyrightAudioPair.audio) {
+      toast({
+        title: "Audio Not Found",
+        description: "No audio file is linked to this copyright request.",
+        variant: "destructive"
       });
-    }, 300);
-    
-    // Complete after ~3 seconds
-    setTimeout(() => {
-      clearInterval(interval);
+      return;
+    }
+    const audioMeta = copyrightAudioPair.audio;
+    if (!audioMeta || !audioMeta.fileUrl) {
+      toast({
+        title: "Audio File Missing",
+        description: "The audio file could not be located.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Prepare audio file URL and name for hash generation
+    // Call the backend AI hash generation API
+    try {
+      setHashGenerationProgress(40);
+      // Ensure full URL for audio file
+      const audioFileUrl = audioMeta.fileUrl.startsWith('http') ? audioMeta.fileUrl : `http://localhost:4000${audioMeta.fileUrl}`;
+      const fileName = audioMeta.fileUrl.split('/').pop() || 'audio.mp3';
+      const savedUser = localStorage.getItem('audioRightsUser');
+      const token = savedUser ? JSON.parse(savedUser).token : '';
+      const result = await ApiService.generateAudioHash(audioFileUrl, fileName, token);
       setHashGenerationProgress(100);
-      
-      // Generate a mock hash
-      const randomHash = Array.from({length: 64}, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-      
-      setGeneratedHash(randomHash);
-      
+      setGeneratedHash(result.hash || result.audioHash || JSON.stringify(result));
       toast({
         title: "Hash Generated",
-        description: "Audio hash has been successfully generated.",
+        description: "Audio hash has been successfully generated using AI.",
       });
-    }, 3000);
+    } catch (err: any) {
+      setHashGenerationProgress(0);
+      toast({
+        title: "Hash Generation Failed",
+        description: err?.message || "Could not generate hash for the audio file.",
+        variant: "destructive"
+      });
+    }
   };
+
 
   const verifyHashInBlockchain = async () => {
     if (!selectedRequestId || !generatedHash) return;
@@ -257,7 +284,8 @@ const AdminCopyrightRequests = () => {
   };
   
   const getAudio = (audioId: string) => {
-    return mockAudios.find(audio => audio.id === audioId);
+    const pair = copyrightAudioPairs.find(pair => pair.audio && pair.audio.id === audioId);
+    return pair ? pair.audio : null;
   };
 
   const handlePlayAudio = (audioId: string) => {
@@ -320,17 +348,17 @@ const AdminCopyrightRequests = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-6">
-              {pendingRequests.map((request) => {
-                const audio = getAudio(request.audioId);
+              {pendingRequests.map((pair) => {
+                const { copyright, audio } = pair;
                 
                 return (
-                  <Card key={request.id}>
+                  <Card key={copyright.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
                           <CardTitle>Copyright Request</CardTitle>
                           <CardDescription>
-                            Request ID: {request.id} | Submitted: {new Date(request.submissionDate).toLocaleDateString()}
+                            Request ID: {copyright.id} | Submitted: {new Date(copyright.createdAt).toLocaleDateString()}
                           </CardDescription>
                         </div>
                         <Badge className="bg-amber-100 text-amber-800 border-amber-200">
@@ -376,7 +404,7 @@ const AdminCopyrightRequests = () => {
                               </div>
                             </div>
                             
-                            <Button variant="outline" onClick={() => handlePlayAudio(request.audioId)}>
+                            <Button variant="outline" onClick={() => handlePlayAudio(audio?.id)}>
                               <PlayIcon className="mr-2 h-4 w-4" />
                               Listen to Audio
                             </Button>
@@ -398,14 +426,14 @@ const AdminCopyrightRequests = () => {
                     <CardFooter className="flex justify-end space-x-2">
                       <Button 
                         variant="outline" 
-                        onClick={() => openRejectDialog(request.id)}
+                        onClick={() => openRejectDialog(copyright.id)}
                         disabled={!canProcess}
                       >
                         <XCircle className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
                       <Button 
-                        onClick={() => handleApprove(request.id)}
+                        onClick={() => handleApprove(copyright.id)}
                         disabled={!canProcess || !reviewNotes.trim()}
                       >
                         {isOfficer ? (
@@ -439,11 +467,11 @@ const AdminCopyrightRequests = () => {
               </Card>
             ) : (
               <div className="grid grid-cols-1 gap-6">
-                {escalatedRequests.map((request) => {
-                  const audio = getAudio(request.audioId);
+                {escalatedRequests.map((pair) => {
+                  const { copyright, audio } = pair;
                   
                   return (
-                    <Card key={request.id} className="border-red-200">
+                    <Card key={copyright.id} className="border-red-200">
                       <CardHeader className="bg-red-50">
                         <div className="flex items-start justify-between">
                           <div>
@@ -452,7 +480,7 @@ const AdminCopyrightRequests = () => {
                               Escalated Copyright Request
                             </CardTitle>
                             <CardDescription>
-                              Request ID: {request.id} | Escalated: {request.escalationDate ? new Date(request.escalationDate).toLocaleDateString() : 'N/A'}
+                              Request ID: {copyright.id} | Escalated: {copyright.escalationDate ? new Date(copyright.escalationDate).toLocaleDateString() : 'N/A'}
                             </CardDescription>
                           </div>
                           <Badge className="bg-red-100 text-red-800 border-red-200">
@@ -462,20 +490,22 @@ const AdminCopyrightRequests = () => {
                       </CardHeader>
                       <CardContent className="pt-4">
                         <div className="space-y-6">
-                          {request.escalationReason && (
+                          {copyright.escalationReason && (
                             <Alert className="border-red-200 bg-red-50">
                               <AlertTriangle className="h-4 w-4 text-red-600" />
                               <AlertTitle>Escalation Reason</AlertTitle>
                               <AlertDescription>
-                                {request.escalationReason}
+                                {copyright.escalationReason}
                               </AlertDescription>
                             </Alert>
                           )}
                           
                           <div className="flex flex-col md:flex-row gap-6">
                             <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
-                              {audio?.coverArt ? (
-                                <img src={audio.coverArt} alt={audio.title} className="h-full object-cover" />
+                              {audio?.fileUrl ? (
+                                <audio controls src={audio.fileUrl} className="w-full">
+                                  Your browser does not support the audio tag.
+                                </audio>
                               ) : (
                                 <Music className="h-16 w-16 text-gray-400" />
                               )}
@@ -483,31 +513,34 @@ const AdminCopyrightRequests = () => {
                             
                             <div className="w-full md:w-2/3 space-y-4">
                               <div>
-                                <h3 className="font-medium">Audio: {audio?.title}</h3>
+                                <h3 className="font-medium">Audio: {audio?.title || 'N/A'}</h3>
                                 <p className="text-gray-600 mt-1">
-                                  Artist: {audio?.artistName}
+                                  Description: {audio?.description || 'No description'}
+                                </p>
+                                <p className="text-gray-600 mt-1">
+                                  Artist ID: {audio?.artistId || copyright.artistId}
                                 </p>
                               </div>
                               
-                              {request.audioHash && (
+                              {copyright.audioHash && (
                                 <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
                                   <h3 className="text-sm font-medium text-gray-700 flex items-center">
                                     <Hash className="h-4 w-4 mr-2" />
                                     Audio Hash
                                   </h3>
                                   <p className="mt-1 text-sm text-gray-600 font-mono break-all">
-                                    {request.audioHash}
+                                    {copyright.audioHash}
                                   </p>
                                 </div>
                               )}
                               
-                              {request.similarAudios && request.similarAudios.length > 0 && (
+                              {copyright.similarAudios && copyright.similarAudios.length > 0 && (
                                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                                   <h3 className="text-sm font-medium text-amber-800">
                                     Similar Content Detected
                                   </h3>
                                   <div className="mt-2 space-y-2">
-                                    {request.similarAudios.map(similar => (
+                                    {copyright.similarAudios.map(similar => (
                                       <div key={similar.id} className="p-2 bg-white rounded border border-amber-100">
                                         <p className="font-medium text-sm">{similar.title}</p>
                                         <p className="text-xs text-gray-500">By {similar.artistName}</p>
@@ -524,12 +557,12 @@ const AdminCopyrightRequests = () => {
                               )}
                               
                               <div className="flex flex-wrap gap-2">
-                                <Button variant="outline" onClick={() => handlePlayAudio(request.audioId)}>
+                                <Button variant="outline" onClick={() => handlePlayAudio(copyright.audioId)}>
                                   <PlayIcon className="mr-2 h-4 w-4" />
                                   Listen to Audio
                                 </Button>
                                 
-                                {request.similarAudios && request.similarAudios[0] && (
+                                {copyright.similarAudios && copyright.similarAudios[0] && (
                                   <Button variant="outline" size="sm" className="bg-amber-50">
                                     <PlayIcon className="mr-1 h-3 w-3" />
                                     Listen to Similar
@@ -553,13 +586,13 @@ const AdminCopyrightRequests = () => {
                       <CardFooter className="flex justify-end space-x-2">
                         <Button 
                           variant="outline" 
-                          onClick={() => openRejectDialog(request.id)}
+                          onClick={() => openRejectDialog(copyright.id)}
                         >
                           <XCircle className="mr-2 h-4 w-4" />
                           Reject
                         </Button>
                         <Button 
-                          onClick={() => handleApprove(request.id)}
+                          onClick={() => handleApprove(copyright.id)}
                           disabled={!reviewNotes.trim()}
                         >
                           <CheckCircle className="mr-2 h-4 w-4" />
@@ -584,18 +617,19 @@ const AdminCopyrightRequests = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-6">
-              {processedRequests.map((request) => {
-                const audio = getAudio(request.audioId);
-                const isApproved = request.status === 'approved';
+              {processedRequests.map((pair) => {
+                const { copyright, audio } = pair;
+                const isApproved = copyright.status === 'approved';
+                const missingAudio = !copyright.audioId || !audio || !audio.fileUrl;
                 
                 return (
-                  <Card key={request.id}>
+                  <Card key={copyright.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
                           <CardTitle>Copyright Request</CardTitle>
                           <CardDescription>
-                            Request ID: {request.id} | Processed: {request.reviewDate ? new Date(request.reviewDate).toLocaleDateString() : 'N/A'}
+                            Request ID: {copyright.id} | Processed: {copyright.reviewDate ? new Date(copyright.reviewDate).toLocaleDateString() : 'N/A'}
                           </CardDescription>
                         </div>
                         <Badge className={isApproved 
@@ -608,6 +642,25 @@ const AdminCopyrightRequests = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-6">
+                        {missingAudio && (
+                          <Alert variant="destructive">
+                            <AlertTitle>Missing Audio Data</AlertTitle>
+                            <AlertDescription>
+                              {(!copyright.audioId) ? (
+                                <>No <b>audioId</b> linked to this copyright request.<br/>Please check backend data integrity.</>
+                              ) : !audio ? (
+                                <>Audio with id <b>{copyright.audioId}</b> not found in audios list.<br/>Please check backend or upload process.</>
+                              ) : !audio.fileUrl ? (
+                                <>Audio file for <b>{audio.title || audio.id}</b> is missing a file URL. Please check backend storage/upload.</>
+                              ) : null}
+                              {audio && audio.fileUrl && (
+                                <div className="mt-2">
+                                  <span className="font-mono text-xs">fileUrl: {audio.fileUrl}</span>
+                                </div>
+                              )}
+                            </AlertDescription>
+                          </Alert>
+                        )}
                         <div className="flex flex-col md:flex-row gap-6">
                           <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
                             {audio?.coverArt ? (
@@ -628,34 +681,34 @@ const AdminCopyrightRequests = () => {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <h3 className="text-sm font-medium text-gray-500">Reviewer</h3>
-                                <p className="mt-1">{request.reviewerId || 'Not specified'}</p>
+                                <p className="mt-1">{copyright.reviewerId || 'Not specified'}</p>
                               </div>
                               <div>
                                 <h3 className="text-sm font-medium text-gray-500">Payment Status</h3>
-                                <p className="mt-1 capitalize">{request.paymentStatus}</p>
+                                <p className="mt-1 capitalize">{copyright.paymentStatus}</p>
                               </div>
                             </div>
                             
-                            {isApproved && request.audioHash && (
+                            {isApproved && copyright.audioHash && (
                               <div className="p-3 bg-blue-50 border border-blue-100 rounded-md">
                                 <h3 className="text-sm font-medium text-blue-800 flex items-center">
                                   <Fingerprint className="h-4 w-4 mr-2" />
                                   Audio Hash
                                 </h3>
                                 <p className="mt-1 text-sm text-blue-700 font-mono break-all">
-                                  {request.audioHash}
+                                  {copyright.audioHash}
                                 </p>
                               </div>
                             )}
 
-                            {isApproved && request.blockchainAddress && (
+                            {isApproved && copyright.blockchainAddress && (
                               <div className="p-3 bg-green-50 border border-green-100 rounded-md">
                                 <h3 className="text-sm font-medium text-green-800 flex items-center">
                                   <Share2 className="h-4 w-4 mr-2" />
                                   Blockchain Record
                                 </h3>
                                 <p className="mt-1 text-sm text-green-700 font-mono break-all">
-                                  {request.blockchainAddress}
+                                  {copyright.blockchainAddress}
                                 </p>
                                 <p className="mt-1 text-xs text-green-600">
                                   This copyright is permanently recorded on the blockchain and can be verified by anyone.
@@ -663,10 +716,10 @@ const AdminCopyrightRequests = () => {
                               </div>
                             )}
                             
-                            {request.reviewNotes && (
+                            {copyright.reviewNotes && (
                               <div className="p-4 bg-gray-50 rounded-md">
                                 <h3 className="font-medium">Review Notes</h3>
-                                <p className="mt-1 text-sm">{request.reviewNotes}</p>
+                                <p className="mt-1 text-sm">{copyright.reviewNotes}</p>
                               </div>
                             )}
                             

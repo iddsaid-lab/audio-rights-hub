@@ -8,6 +8,7 @@ import ApiService from '../../services/ApiService';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -87,7 +88,6 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-        
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
@@ -101,7 +101,6 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-        
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
@@ -115,7 +114,6 @@ const AdminDashboard = () => {
             </div>
           </CardContent>
         </Card>
-        
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
@@ -130,7 +128,60 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
-      
+
+      {/* Artist Verifications Summary */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Artist Verifications</CardTitle>
+          <CardDescription>Total: {verificationRequests.length}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {verificationRequests.slice(0, 5).map(req => (
+              <div key={req.id} className="py-3 flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">{req.artistName || req.fullName || 'Unknown Artist'}</h4>
+                  <p className="text-sm text-gray-500">Status: {req.status}</p>
+                </div>
+                <Badge variant="outline" className={
+                  req.status === 'approved' ? "bg-green-50 text-green-600 border-green-200" :
+                  req.status === 'rejected' ? "bg-red-50 text-red-600 border-red-200" :
+                  "bg-yellow-50 text-yellow-600 border-yellow-200"
+                }>{req.status.charAt(0).toUpperCase() + req.status.slice(1)}</Badge>
+              </div>
+            ))}
+            {verificationRequests.length === 0 && (
+              <div className="py-8 text-center text-gray-500">No verification requests found</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      {/* Pending Artist Verifications Summary */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Pending Artist Verifications</CardTitle>
+          <CardDescription>Pending: {verificationRequests.filter(req => req.status === 'pending').length}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y">
+            {verificationRequests.filter(req => req.status === 'pending').slice(0, 5).map(req => (
+              <div key={req.id} className="py-3 flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">{req.artistName || req.fullName || 'Unknown Artist'}</h4>
+                  <p className="text-sm text-gray-500">Requested on: {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : 'N/A'}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleVerificationReview(req.artistId)}>
+                  Review
+                </Button>
+              </div>
+            ))}
+            {verificationRequests.filter(req => req.status === 'pending').length === 0 && (
+              <div className="py-8 text-center text-gray-500">No pending verifications</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Pending Actions */}
       <Card className="mb-8">
         <CardHeader>

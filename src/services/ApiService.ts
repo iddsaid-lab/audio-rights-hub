@@ -58,6 +58,15 @@ export class ApiService {
     return await res.json();
   }
 
+  static async getAllCopyrightsWithAudio(token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/copyrights/with-audio`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch copyrights with audio');
+    return await res.json();
+  }
+
   static async getMyCopyrights(token?: string) {
     token = ApiService.getToken(token);
     const res = await fetch(`${API_BASE}/copyrights/my`, {
@@ -151,6 +160,25 @@ export class ApiService {
   }
 
   // --- AI SERVICES ---
+  static async generateAudioHash(audioFileUrl: string, fileName: string, token?: string) {
+    token = ApiService.getToken(token);
+    // Fetch the audio file as a blob
+    const response = await fetch(audioFileUrl);
+    if (!response.ok) throw new Error('Failed to fetch audio file');
+    const blob = await response.blob();
+    // Create a File object with the correct name and type
+    const file = new File([blob], fileName, { type: blob.type });
+    const formData = new FormData();
+    formData.append('audio', file);
+    const res = await fetch('http://localhost:5000/verify', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    if (!res.ok) throw new Error('Failed to generate audio hash');
+    return await res.json();
+  }
+
   static async analyzeAudio(audioUrl: string, token?: string) {
     token = ApiService.getToken(token);
     const res = await fetch(`${API_BASE}/ai/analyze`, {
@@ -183,6 +211,10 @@ export class ApiService {
     return await res.json();
   }
 
+
+
+
+
   static async getMyProfile(token?: string) {
     token = ApiService.getToken(token);
     const res = await fetch(`${API_BASE}/artists/profile`, {
@@ -192,14 +224,7 @@ export class ApiService {
     return await res.json();
   }
 
-  static async getAllArtistProfiles(token?: string) {
-    token = ApiService.getToken(token);
-    const res = await fetch(`${API_BASE}/artists/all`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Failed to fetch artist profiles');
-    return await res.json();
-  }
+
 
   static async getAllVerificationRequests(token?: string) {
     token = ApiService.getToken(token);
@@ -207,6 +232,15 @@ export class ApiService {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to fetch verification requests');
+    return await res.json();
+  }
+
+  static async getAllArtistProfiles(token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/artists/all`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch artist profiles');
     return await res.json();
   }
 }

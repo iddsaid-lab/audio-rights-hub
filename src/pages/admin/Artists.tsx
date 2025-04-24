@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { mockArtistProfiles } from '@/data/mockData';
+import ApiService from '../../services/ApiService';
 import { Badge } from '@/components/ui/badge';
 import { Search, User, Music, Shield, Check, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,16 +13,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const AdminArtists = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
-  const [selectedArtist, setSelectedArtist] = useState<typeof mockArtistProfiles[0] | null>(null);
+  const [selectedArtist, setSelectedArtist] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [artists, setArtists] = useState<any[]>([]);
   const { toast } = useToast();
-  
+
+  // Fetch artists from backend
+  React.useEffect(() => {
+    ApiService.getAllArtistProfiles()
+      .then(setArtists)
+      .catch(() => setArtists([]));
+  }, []);
+
   // Filter artists based on search query
-  const filteredArtists = mockArtistProfiles.filter(artist => 
-    artist.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    artist.phoneNumber.includes(searchQuery)
+  const filteredArtists = artists.filter(artist => 
+    artist.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    artist.phoneNumber?.includes(searchQuery)
   );
-  
+
   const verifiedArtists = filteredArtists.filter(artist => artist.verificationStatus === 'verified');
   const pendingArtists = filteredArtists.filter(artist => artist.verificationStatus === 'pending');
   const rejectedArtists = filteredArtists.filter(artist => artist.verificationStatus === 'rejected');
@@ -35,7 +43,7 @@ const AdminArtists = () => {
         ? pendingArtists 
         : rejectedArtists;
 
-  const openVerifyDialog = (artist: typeof mockArtistProfiles[0]) => {
+  const openVerifyDialog = (artist: any) => {
     setSelectedArtist(artist);
     setIsVerifyDialogOpen(true);
   };
@@ -56,14 +64,14 @@ const AdminArtists = () => {
   const handleViewProfile = (artistId: string) => {
     toast({
       title: "Profile View",
-      description: `Viewing details for artist ID: ${artistId.substring(0, 8)}`,
+      description: `Viewing details for artist ID: ${typeof artistId === 'string' ? artistId.substring(0, 8) : ''}`,
     });
   };
 
   const handleViewAudios = (artistId: string) => {
     toast({
       title: "Audios View",
-      description: `Viewing audio recordings for artist ID: ${artistId.substring(0, 8)}`,
+      description: `Viewing audio recordings for artist ID: ${typeof artistId === 'string' ? artistId.substring(0, 8) : ''}`,
     });
   };
 
@@ -104,7 +112,7 @@ const AdminArtists = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle>{artist.fullName}</CardTitle>
-                  <CardDescription>ID: {artist.userId.substring(0, 8)}</CardDescription>
+                  <CardDescription>ID: {typeof artist.userId === 'string' ? artist.userId.substring(0, 8) : 'N/A'}</CardDescription>
                 </div>
                 <Badge className={
                   artist.verificationStatus === 'verified' 

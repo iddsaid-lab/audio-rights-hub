@@ -24,8 +24,16 @@ const AdminVerifications = () => {
   
   const canApprove = user?.role === 'manager' || user?.role === 'officer';
   
-  const pendingVerifications = mockVerificationRequests.filter(req => req.status === 'pending');
-  const completedVerifications = mockVerificationRequests.filter(req => req.status !== 'pending');
+  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+
+useEffect(() => {
+  ApiService.getAllVerificationRequests()
+    .then(setVerificationRequests)
+    .catch(() => setVerificationRequests([]));
+}, []);
+
+const pendingVerifications = verificationRequests.filter(req => req.status === 'pending');
+  const completedVerifications = verificationRequests.filter(req => req.status !== 'pending');
   
   const handleApprove = (artistId: string) => {
     if (!canApprove) {
@@ -102,9 +110,17 @@ const AdminVerifications = () => {
     setIsRejectDialogOpen(false);
   };
   
-  const getArtistProfile = (artistId: string) => {
-    return mockArtistProfiles.find(profile => profile.userId === artistId);
-  };
+  const [artistProfiles, setArtistProfiles] = useState<any[]>([]);
+
+useEffect(() => {
+  ApiService.getAllArtistProfiles()
+    .then(setArtistProfiles)
+    .catch(() => setArtistProfiles([]));
+}, []);
+
+const getArtistProfile = (artistId: string) => {
+  return artistProfiles.find(profile => profile.userId === artistId);
+};
 
   const viewDocument = (documentType: string, artistName: string) => {
     setSelectedDocument({
