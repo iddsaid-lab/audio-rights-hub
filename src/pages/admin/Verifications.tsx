@@ -21,19 +21,20 @@ const AdminVerifications = () => {
   const [isWalletDialogOpen, setIsWalletDialogOpen] = useState(false);
   const [walletGenerating, setWalletGenerating] = useState(false);
   const [generatedWallet, setGeneratedWallet] = useState<string | null>(null);
+  const [escalationNote, setEscalationNote] = useState('');
+  const [verifying, setVerifying] = useState(false);
   
   const canApprove = user?.role === 'manager' || user?.role === 'officer';
   
-  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
 
 useEffect(() => {
   ApiService.getAllVerificationRequests()
-    .then(setVerificationRequests)
-    .catch(() => setVerificationRequests([]));
+    .then(setPendingVerifications)
+    .catch(() => setPendingVerifications([]));
 }, []);
 
-const pendingVerifications = verificationRequests.filter(req => req.status === 'pending');
-  const completedVerifications = verificationRequests.filter(req => req.status !== 'pending');
+// No processed/completed tabs for this view, pendingVerifications is the list of all unverified artists.
   
   const handleApprove = (artistId: string) => {
     if (!canApprove) {
@@ -74,17 +75,34 @@ const pendingVerifications = verificationRequests.filter(req => req.status === '
     }
   };
 
-  const confirmApprovalWithWallet = () => {
+  const confirmApprovalWithWallet = async () => {
     if (!generatedWallet || !selectedArtistId) return;
-    
-    toast({
-      title: "Artist Verified",
-      description: "The artist has been successfully verified and assigned a blockchain wallet address.",
-    });
-    
+    setVerifying(true);
+    console.log('Verification started for artist:', selectedArtistId);
+    try {
+      const saved = localStorage.getItem('audioRightsUser');
+      const token = saved ? JSON.parse(saved).token : '';
+      const res = await ApiService.verifyUser(Number(selectedArtistId), token);
+      console.log('Verification API response:', res);
+      setPendingVerifications(prev => prev.filter(v => v.artistId !== selectedArtistId));
+      toast({
+        title: "Artist Verified",
+        description: "The artist has been successfully verified and assigned a blockchain wallet address.",
+      });
+    } catch (err: any) {
+      console.error('Verification failed:', err);
+      toast({
+        title: "Verification Failed",
+        description: err?.message || 'Failed to verify artist.',
+        variant: 'destructive',
+      });
+    }
+    setVerifying(false);
     setIsWalletDialogOpen(false);
     setGeneratedWallet(null);
   };
+
+
   
   const openRejectDialog = (artistId: string) => {
     setSelectedArtistId(artistId);
@@ -149,9 +167,7 @@ const getArtistProfile = (artistId: string) => {
       <Tabs defaultValue="pending">
         <TabsList className="mb-4">
           <TabsTrigger value="pending">Pending ({pendingVerifications.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completedVerifications.length})</TabsTrigger>
         </TabsList>
-        
         <TabsContent value="pending">
           {pendingVerifications.length === 0 ? (
             <Card>
@@ -208,7 +224,7 @@ const getArtistProfile = (artistId: string) => {
                               <Eye className="mr-1 h-3 w-3" />
                               View ID
                             </Button>
-                            {req.documents.passport && (
+                            {req.documents?.passport && (
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -218,7 +234,7 @@ const getArtistProfile = (artistId: string) => {
                                 View Passport
                               </Button>
                             )}
-                            {req.documents.previousWork && (
+                            {req.documents?.previousWork && (
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -249,83 +265,6 @@ const getArtistProfile = (artistId: string) => {
                         Approve
                       </Button>
                     </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="completed">
-          {completedVerifications.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <Clock className="h-12 w-12 text-gray-400 mb-3" />
-                <p className="text-gray-500 text-center">No completed verifications yet.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {completedVerifications.map((req) => {
-                const artistProfile = getArtistProfile(req.artistId);
-                const isApproved = req.status === 'approved';
-                
-                return (
-                  <Card key={req.artistId}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>{req.artistName}</CardTitle>
-                          <CardDescription>
-                            Reviewed: {req.reviewDate ? new Date(req.reviewDate).toLocaleDateString() : 'N/A'}
-                          </CardDescription>
-                        </div>
-                        <Badge className={isApproved 
-                          ? "bg-green-100 text-green-800 border-green-200" 
-                          : "bg-red-100 text-red-800 border-red-200"
-                        }>
-                          {isApproved ? 'Approved' : 'Rejected'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-500">ID Number</h3>
-                            <p className="mt-1">{artistProfile?.nationalIdNumber || 'Not provided'}</p>
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-500">Phone Number</h3>
-                            <p className="mt-1">{artistProfile?.phoneNumber || 'Not provided'}</p>
-                          </div>
-                        </div>
-                        
-                        {isApproved && (
-                          <div className="p-3 bg-green-50 border border-green-100 rounded-md">
-                            <h3 className="text-sm font-medium text-green-800 flex items-center">
-                              <Wallet className="h-4 w-4 mr-2" />
-                              Blockchain Wallet
-                            </h3>
-                            <p className="mt-1 text-sm text-green-700 font-mono break-all">
-                              {artistProfile?.walletAddress || '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {req.reviewNotes && (
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-500">Review Notes</h3>
-                            <p className="mt-1 text-sm">{req.reviewNotes}</p>
-                          </div>
-                        )}
-                        
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-500">Reviewer</h3>
-                          <p className="mt-1">{req.reviewerId || 'System'}</p>
-                        </div>
-                      </div>
-                    </CardContent>
                   </Card>
                 );
               })}
@@ -413,6 +352,7 @@ const getArtistProfile = (artistId: string) => {
         setIsWalletDialogOpen(open);
         if (!open) {
           setGeneratedWallet(null);
+          setEscalationNote('');
         }
       }}>
         <DialogContent>
@@ -422,7 +362,6 @@ const getArtistProfile = (artistId: string) => {
               Generate a blockchain wallet address for this artist. This will be used to track all of their work and copyright registrations.
             </DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4">
             {!generatedWallet ? (
               <div className="flex flex-col items-center justify-center p-6">
@@ -456,19 +395,64 @@ const getArtistProfile = (artistId: string) => {
                 <p className="text-sm text-gray-600">
                   This wallet address has been generated for the artist and will be permanently associated with their account. They can use this address to track their copyrights on the blockchain.
                 </p>
+                {/* Escalation UI for officers */}
+                {user?.role === 'officer' && (
+                  <div className="space-y-2">
+                    <label className="block font-medium text-gray-700">Escalation Note to Manager</label>
+                    <Textarea
+                      value={escalationNote}
+                      onChange={e => setEscalationNote(e.target.value)}
+                      placeholder="Enter a note for the manager..."
+                      rows={3}
+                    />
+                    <Button
+                      className="mt-2"
+                      variant="secondary"
+                      onClick={async () => {
+                        if (!selectedArtistId) return;
+                        try {
+                          const requestObj = pendingVerifications.find(req => req.userId === selectedArtistId);
+if (!requestObj) return;
+await ApiService.escalateCopyrightRequest(Number(requestObj.id), escalationNote);
+                          toast({
+                            title: "Request Escalated",
+                            description: "The request has been escalated to managers for final verification.",
+                          });
+                          setIsWalletDialogOpen(false);
+                          setGeneratedWallet(null);
+                          setEscalationNote('');
+                        } catch (err) {
+                          toast({
+                            title: "Escalation Failed",
+                            description: err?.message || 'Could not escalate request.',
+                            variant: 'destructive',
+                          });
+                        }
+                      }}
+                      disabled={!escalationNote.trim()}
+                    >
+                      Escalate to Manager
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
-          
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsWalletDialogOpen(false)}>
               Cancel
             </Button>
             <Button 
               onClick={confirmApprovalWithWallet}
-              disabled={!generatedWallet}
+              disabled={!generatedWallet || verifying}
             >
-              Confirm & Approve Artist
+              {verifying ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>Verifying...
+                </>
+              ) : (
+                'Confirm & Approve Artist'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

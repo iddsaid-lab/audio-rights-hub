@@ -26,8 +26,12 @@ export class ApiService {
     if (!res.ok) throw new Error((await res.json()).error || 'Login failed');
     return await res.json();
   }
-  static async verifyUser(userId: number) {
-    const res = await fetch(`${API_BASE}/auth/verify/${userId}`, { method: 'POST' });
+  static async verifyUser(userId: number, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/admin/verify-artist/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (!res.ok) throw new Error('Verification failed');
     return await res.json();
   }
@@ -258,6 +262,19 @@ export class ApiService {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to fetch artist profiles');
+    return await res.json();
+  }
+  static async escalateCopyrightRequest(id: number, escalationNote: string, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/copyrights/escalate/${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ escalationNote })
+    });
+    if (!res.ok) throw new Error('Failed to escalate request');
     return await res.json();
   }
 }
