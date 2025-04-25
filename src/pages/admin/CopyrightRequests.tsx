@@ -152,62 +152,42 @@ const AdminCopyrightRequests = () => {
 
   const verifyHashInBlockchain = async () => {
     if (!selectedRequestId || !generatedHash) return;
-    
+
     setHashVerificationProgress(0);
     setHashMatchFound(false);
     setSimilarAudios([]);
-    
-    // Simulate blockchain verification process
-    const interval = setInterval(() => {
-      setHashVerificationProgress(prev => {
-        const newProgress = prev + Math.random() * 10;
-        return newProgress >= 100 ? 100 : newProgress;
-      });
-    }, 200);
-    
-    // Complete after ~4 seconds
-    setTimeout(() => {
-      clearInterval(interval);
+
+    try {
+      setHashVerificationProgress(30);
+      // Call the real API to check hash existence
+      const savedUser = localStorage.getItem('audioRightsUser');
+      const token = savedUser ? JSON.parse(savedUser).token : '';
+      const { exists } = await ApiService.checkHashExistsInBlockchain(generatedHash, token);
       setHashVerificationProgress(100);
-      
-      // Simulate a 30% chance of finding a match
-      const foundMatch = Math.random() < 0.3;
-      setHashMatchFound(foundMatch);
-      
-      if (foundMatch) {
-        // Generate mock similar audios
-        const mockSimilarAudios = [
-          {
-            id: "sa-" + Math.random().toString(36).substring(2, 10),
-            title: "Similar Sounding Track",
-            artistName: "Another Artist",
-            ownerName: "Record Label X",
-            similarityScore: 89 + Math.floor(Math.random() * 10)
-          },
-          {
-            id: "sa-" + Math.random().toString(36).substring(2, 10),
-            title: "Partial Match Song",
-            artistName: "Studio Band",
-            ownerName: "Independent Publisher",
-            similarityScore: 70 + Math.floor(Math.random() * 15)
-          }
-        ];
-        
-        setSimilarAudios(mockSimilarAudios);
-        
+      setHashMatchFound(exists);
+      if (exists) {
         toast({
-          title: "Potential Copyright Match Found",
-          description: "Similar audio content has been identified in the blockchain.",
+          title: "Copyright Exists",
+          description: "This audio hash is already registered on the blockchain.",
           variant: "destructive"
         });
+        // Optionally: fetch and display similar audios if your backend supports it
       } else {
         toast({
           title: "Verification Complete",
           description: "No similar content found. Audio appears to be original.",
         });
       }
-    }, 4000);
+    } catch (err: any) {
+      setHashVerificationProgress(0);
+      toast({
+        title: "Blockchain Check Failed",
+        description: err?.message || "Could not check the blockchain for this hash.",
+        variant: "destructive"
+      });
+    }
   };
+
 
   const handleEscalateToManager = () => {
     if (!selectedRequestId || !escalationReason) return;

@@ -90,6 +90,23 @@ export class ApiService {
     return await res.json();
   }
 
+  // --- BLOCKCHAIN ---
+  /**
+   * Checks if a hash exists in the blockchain.
+   * Backend should return: { exists: boolean }
+   */
+  static async checkHashExistsInBlockchain(hash: string, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(
+      `${API_BASE}/blockchain/hash/${hash}/exists`,
+      {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }
+    );
+    if (!res.ok) throw new Error('Failed to check hash on blockchain');
+    return await res.json(); // Should return { exists: boolean }
+  }
+
   // --- INVOICES ---
   static async createInvoice(data: any, token?: string) {
     token = ApiService.getToken(token);
@@ -228,7 +245,7 @@ export class ApiService {
 
   static async getAllVerificationRequests(token?: string) {
     token = ApiService.getToken(token);
-    const res = await fetch(`${API_BASE}/verifications/all`, {
+    const res = await fetch(`${API_BASE}/admin/verifications/all`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to fetch verification requests');
