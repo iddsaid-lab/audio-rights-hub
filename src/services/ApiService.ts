@@ -3,6 +3,20 @@
 
 const API_BASE = 'http://127.0.0.1:4000/api'; // Adjust if your backend runs on a different path or port
 
+/**
+ * Gets a new Ethereum wallet from backend.
+ * Returns: { address, privateKey }
+ */
+export async function getNewWallet(token?: string) {
+  token = ApiService.getToken(token);
+  const res = await fetch(`${API_BASE}/blockchain/wallet/new`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to generate wallet');
+  return await res.json();
+}
+
 export class ApiService {
   // --- AUTH ---
   static async register(data: {email: string, password: string, fullName: string, role: string}) {

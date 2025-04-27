@@ -23,6 +23,7 @@ const AdminVerifications = () => {
   const [generatedWallet, setGeneratedWallet] = useState<string | null>(null);
   const [escalationNote, setEscalationNote] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [escalating, setEscalating] = useState(false);
   
   const canApprove = user?.role === 'manager' || user?.role === 'officer';
   
@@ -45,25 +46,21 @@ useEffect(() => {
       });
       return;
     }
-    
-    // First, open wallet generation dialog
+    console.log('handleApprove called with artistId:', artistId);
     setSelectedArtistId(artistId);
     setIsWalletDialogOpen(true);
   };
 
   const generateWallet = async () => {
+    console.log('Verify (Generate Wallet) button clicked');
     setWalletGenerating(true);
-    
     try {
-      // Simulate blockchain wallet generation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Generate a mock wallet address
-      const randomWallet = '0x' + Array.from({length: 40}, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-      
-      setGeneratedWallet(randomWallet);
+      const saved = localStorage.getItem('audioRightsUser');
+      const token = saved ? JSON.parse(saved).token : '';
+      // Call backend to generate a real Ethereum wallet
+      const { address } = await import('../../services/ApiService').then(m => m.getNewWallet(token));
+      setGeneratedWallet(address);
+      console.log('Generated wallet address:', address);
       setWalletGenerating(false);
     } catch (error) {
       toast({
@@ -75,22 +72,39 @@ useEffect(() => {
     }
   };
 
+
   const confirmApprovalWithWallet = async () => {
-    if (!generatedWallet || !selectedArtistId) return;
+    console.log('Confirm button clicked');
+    if (!generatedWallet || !selectedArtistId) {
+      console.log('Early return: generatedWallet =', generatedWallet, ', selectedArtistId =', selectedArtistId);
+      return;
+    }
     setVerifying(true);
     console.log('Verification started for artist:', selectedArtistId);
     try {
       const saved = localStorage.getItem('audioRightsUser');
       const token = saved ? JSON.parse(saved).token : '';
+      console.log('Calling ApiService.verifyUser with:', {
+        artistId: Number(selectedArtistId),
+        token
+      });
       const res = await ApiService.verifyUser(Number(selectedArtistId), token);
       console.log('Verification API response:', res);
-      setPendingVerifications(prev => prev.filter(v => v.artistId !== selectedArtistId));
+      setPendingVerifications(prev => prev.filter(v => String(v.artistId ?? v.userId ?? v.id) !== String(selectedArtistId)));
+
       toast({
         title: "Artist Verified",
-        description: "The artist has been successfully verified and assigned a blockchain wallet address.",
+        description: `The artist has been verified and assigned wallet: ${res.artist?.walletAddress || 'N/A'}`,
       });
+      // Redirect or reload to reflect changes
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200); // Give user a moment to see the toast
     } catch (err: any) {
       console.error('Verification failed:', err);
+      if (err instanceof Response) {
+        err.json().then((data: any) => console.error('API error details:', data));
+      }
       toast({
         title: "Verification Failed",
         description: err?.message || 'Failed to verify artist.',
@@ -179,10 +193,10 @@ const getArtistProfile = (artistId: string) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {pendingVerifications.map((req) => {
-                const artistProfile = getArtistProfile(req.artistId);
+                const artistProfile = getArtistProfile(req.id);
                 
                 return (
-                  <Card key={req.artistId}>
+                  <Card key={req.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
@@ -251,14 +265,17 @@ const getArtistProfile = (artistId: string) => {
                     <CardFooter className="flex justify-between gap-2">
                       <Button 
                         variant="outline" 
-                        onClick={() => openRejectDialog(req.artistId)}
+                        onClick={() => openRejectDialog(req.id)}
                         disabled={!canApprove}
                       >
                         <XCircle className="mr-2 h-4 w-4" />
                         Reject
                       </Button>
                       <Button 
-                        onClick={() => handleApprove(req.artistId)}
+                        onClick={() => {
+                          console.log('Button Approve clicked with artistId:', req.id);
+                          handleApprove(String(req.id));
+                        }}
                         disabled={!canApprove}
                       >
                         <CheckCircle className="mr-2 h-4 w-4" />
@@ -410,10 +427,21 @@ const getArtistProfile = (artistId: string) => {
                       variant="secondary"
                       onClick={async () => {
                         if (!selectedArtistId) return;
+                        setEscalating(true);
+                        console.log('Escalation started for artist:', selectedArtistId);
                         try {
                           const requestObj = pendingVerifications.find(req => req.userId === selectedArtistId);
-if (!requestObj) return;
-await ApiService.escalateCopyrightRequest(Number(requestObj.id), escalationNote);
+                          if (!requestObj) {
+                            toast({
+                              title: "Escalation Failed",
+                              description: "Artist request not found.",
+                              variant: 'destructive',
+                            });
+                            setEscalating(false);
+                            return;
+                          }
+                          const res = await ApiService.escalateCopyrightRequest(Number(requestObj.id), escalationNote);
+                          console.log('Escalation API response:', res);
                           toast({
                             title: "Request Escalated",
                             description: "The request has been escalated to managers for final verification.",
@@ -422,16 +450,24 @@ await ApiService.escalateCopyrightRequest(Number(requestObj.id), escalationNote)
                           setGeneratedWallet(null);
                           setEscalationNote('');
                         } catch (err) {
+                          console.error('Escalation failed:', err);
                           toast({
                             title: "Escalation Failed",
                             description: err?.message || 'Could not escalate request.',
                             variant: 'destructive',
                           });
                         }
+                        setEscalating(false);
                       }}
-                      disabled={!escalationNote.trim()}
+                      disabled={!escalationNote.trim() || escalating}
                     >
-                      Escalate to Manager
+                      {escalating ? (
+                        <>
+                          <span className="animate-spin mr-2">⏳</span>Escalating...
+                        </>
+                      ) : (
+                        'Escalate to Manager'
+                      )}
                     </Button>
                   </div>
                 )}

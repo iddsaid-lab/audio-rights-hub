@@ -1,11 +1,10 @@
-
-import React, { useState } from 'react';import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ApiService from '../../services/ApiService';
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   CheckCircle, 
@@ -36,16 +35,7 @@ const AdminCopyrightRequests = () => {
   const [reviewNotes, setReviewNotes] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isPlayDialogOpen, setIsPlayDialogOpen] = useState(false);
-  // Combined copyright+audio objects
-  const [copyrightAudioPairs, setCopyrightAudioPairs] = useState<any[]>([]);
   const [selectedAudio, setSelectedAudio] = useState<any | null>(null);
-
-  useEffect(() => {
-    ApiService.getAllCopyrightsWithAudio()
-      .then(setCopyrightAudioPairs)
-      .catch(() => setCopyrightAudioPairs([]));
-  }, []);
-
   const [isBlockchainDialogOpen, setIsBlockchainDialogOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [blockchainAddress, setBlockchainAddress] = useState<string | null>(null);
@@ -72,6 +62,20 @@ const AdminCopyrightRequests = () => {
   const canProcess = isOfficer || isManager;
   const canPublishToBlockchain = isManager;
   
+  const [copyrightAudioPairs, setCopyrightAudioPairs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    setLoading(true);
+    ApiService.getAllCopyrightsWithAudio()
+      .then((pairs) => {
+        console.log('[DEBUG] copyrightAudioPairs:', pairs);
+        setCopyrightAudioPairs(pairs);
+      })
+      .catch(() => setCopyrightAudioPairs([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   // Helper arrays for filtering
   const pendingRequests = copyrightAudioPairs.filter(pair => pair.copyright.status === 'pending');
   const escalatedRequests = copyrightAudioPairs.filter(pair => pair.copyright.status === 'escalated');
@@ -149,7 +153,6 @@ const AdminCopyrightRequests = () => {
     }
   };
 
-
   const verifyHashInBlockchain = async () => {
     if (!selectedRequestId || !generatedHash) return;
 
@@ -188,17 +191,29 @@ const AdminCopyrightRequests = () => {
     }
   };
 
-
-  const handleEscalateToManager = () => {
+  const handleEscalateToManager = async () => {
     if (!selectedRequestId || !escalationReason) return;
-    
-    toast({
-      title: "Request Escalated",
-      description: "The copyright request has been escalated to a manager for review.",
-    });
-    
-    setIsEscalateDialogOpen(false);
-    setEscalationReason('');
+    try {
+      const savedUser = localStorage.getItem('audioRightsUser');
+      const token = savedUser ? JSON.parse(savedUser).token : '';
+      await ApiService.escalateCopyrightRequest(Number(selectedRequestId), escalationReason, token);
+      toast({
+        title: "Request Escalated",
+        description: "The copyright request has been escalated to a manager for review.",
+      });
+      // Optionally refresh the copyrightAudioPairs list to reflect update
+      ApiService.getAllCopyrightsWithAudio(token)
+        .then((pairs) => setCopyrightAudioPairs(pairs))
+        .catch(() => {});
+      setIsEscalateDialogOpen(false);
+      setEscalationReason('');
+    } catch (err: any) {
+      toast({
+        title: "Escalation Failed",
+        description: err?.message || "Could not escalate the request.",
+        variant: "destructive"
+      });
+    }
   };
   
   const publishToBlockchain = async () => {
@@ -264,9 +279,13 @@ const AdminCopyrightRequests = () => {
   };
   
   const getAudio = (audioId: string) => {
-    const pair = copyrightAudioPairs.find(pair => pair.audio && pair.audio.id === audioId);
-    return pair ? pair.audio : null;
+    // Find the audio object embedded in copyrightAudioPairs
+    for (const pair of copyrightAudioPairs) {
+      if (pair.audio && pair.audio.id === audioId) return pair.audio;
+    }
+    return null;
   };
+
 
   const handlePlayAudio = (audioId: string) => {
     const audio = getAudio(audioId);
@@ -305,21 +324,12 @@ const AdminCopyrightRequests = () => {
       <Tabs defaultValue="pending">
         <TabsList className="mb-4">
           <TabsTrigger value="pending">Pending ({pendingRequests.length})</TabsTrigger>
-          {isManager && (
-            <TabsTrigger value="escalated">
-              Escalated ({escalatedRequests.length})
-              {escalatedRequests.length > 0 && (
-                <span className="ml-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 inline-flex items-center justify-center">
-                  {escalatedRequests.length}
-                </span>
-              )}
-            </TabsTrigger>
-          )}
+
           <TabsTrigger value="processed">Processed ({processedRequests.length})</TabsTrigger>
         </TabsList>
         
         <TabsContent value="pending">
-          {pendingRequests.length === 0 ? (
+          {copyrightAudioPairs.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
                 <Clock className="h-12 w-12 text-gray-400 mb-3" />
@@ -328,9 +338,114 @@ const AdminCopyrightRequests = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-6">
-              {pendingRequests.map((pair) => {
-                const { copyright, audio } = pair;
-                
+              {pendingRequests.map(({ copyright, audio }) => (
+                <Card key={copyright.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>Copyright Request</CardTitle>
+                        <CardDescription>
+                          Request ID: {copyright.id} | Audio ID: {audio?.id} | Artist ID: {audio?.artistId}
+                        </CardDescription>
+                      </div>
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+                        Pending Review
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+  <div className="space-y-6">
+    <div className="flex flex-col md:flex-row gap-6">
+      <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
+        <Music className="h-16 w-16 text-gray-400" />
+      </div>
+      <div className="w-full md:w-2/3 space-y-4">
+        <div>
+          <h3 className="font-medium">Audio Title: {audio?.title}</h3>
+          <p className="text-gray-600 mt-1">
+            Audio File URL: {audio?.fileUrl}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Audio ID</h3>
+            <p className="mt-1">{audio?.id}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Copyright ID</h3>
+            <p className="mt-1">{copyright?.id}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Copyright Status</h3>
+            <p className="mt-1">{copyright?.status}</p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-500">Audio File URL</h3>
+            <p className="mt-1">{audio?.fileUrl}</p>
+          </div>
+        </div>
+        <Button variant="outline" onClick={() => handlePlayAudio(audio?.id)}>
+          <PlayIcon className="mr-2 h-4 w-4" />
+          Listen to Audio
+        </Button>
+      </div>
+    </div>
+    <div className="space-y-2">
+      <h3 className="font-medium">Review Notes</h3>
+      <Textarea 
+        placeholder="Add notes about this copyright request..."
+        className="min-h-[100px]"
+        disabled={!canProcess}
+        value={reviewNotes}
+        onChange={(e) => setReviewNotes(e.target.value)}
+      />
+    </div>
+  </div>
+</CardContent>
+<CardFooter className="flex justify-end space-x-2">
+  <Button 
+    variant="outline" 
+    onClick={() => openRejectDialog(copyright.id)}
+    disabled={!canProcess}
+  >
+    <XCircle className="mr-2 h-4 w-4" />
+    Reject
+  </Button>
+  <Button 
+    onClick={() => handleApprove(copyright.id)}
+    disabled={copyright.paymentStatus !== 'paid' || !reviewNotes.trim()}
+  >
+    {isOfficer ? (
+      <>
+        <Fingerprint className="mr-2 h-4 w-4" />
+        Verify Audio
+      </>
+    ) : (
+      <>
+        <CheckCircle className="mr-2 h-4 w-4" />
+        Approve
+      </>
+    )}
+  </Button>
+</CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="processed">
+          {processedRequests.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <Clock className="h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-gray-500 text-center">No processed copyright requests.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-6">
+              {processedRequests.map(({ copyright, audio }) => {
+                const isApproved = copyright.status === 'approved';
                 return (
                   <Card key={copyright.id}>
                     <CardHeader>
@@ -338,12 +453,18 @@ const AdminCopyrightRequests = () => {
                         <div>
                           <CardTitle>Copyright Request</CardTitle>
                           <CardDescription>
-                            Request ID: {copyright.id} | Submitted: {new Date(copyright.createdAt).toLocaleDateString()}
-                          </CardDescription>
+  Request ID: {copyright.id} | Processed: {copyright.reviewDate ? new Date(copyright.reviewDate).toLocaleDateString() : 'N/A'}
+</CardDescription>
                         </div>
-                        <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-                          Pending Review
-                        </Badge>
+                        <Badge className={
+  copyright.status === 'processed' ? "bg-blue-100 text-blue-800 border-blue-200"
+  : copyright.status === 'verified' ? "bg-green-100 text-green-800 border-green-200"
+  : copyright.status === 'rejected' ? "bg-red-100 text-red-800 border-red-200"
+  : copyright.status === 'completed' ? "bg-purple-100 text-purple-800 border-purple-200"
+  : "bg-gray-100 text-gray-800 border-gray-200"
+}>
+  {copyright.status.charAt(0).toUpperCase() + copyright.status.slice(1)}
+</Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -363,298 +484,8 @@ const AdminCopyrightRequests = () => {
                               <p className="text-gray-600 mt-1">
                                 Artist: {audio?.artistName}
                               </p>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500">Genre</h3>
-                                <p className="mt-1">{audio?.genre || 'Not specified'}</p>
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500">Duration</h3>
-                                <p className="mt-1">{audio?.duration ? `${Math.floor(audio.duration / 60)}:${(audio.duration % 60).toString().padStart(2, '0')}` : 'Unknown'}</p>
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500">Upload Date</h3>
-                                <p className="mt-1">{audio?.uploadDate ? new Date(audio.uploadDate).toLocaleDateString() : 'Unknown'}</p>
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-medium text-gray-500">Play Count</h3>
-                                <p className="mt-1">{audio?.playCount || 0}</p>
-                              </div>
-                            </div>
-                            
-                            <Button variant="outline" onClick={() => handlePlayAudio(audio?.id)}>
-                              <PlayIcon className="mr-2 h-4 w-4" />
-                              Listen to Audio
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h3 className="font-medium">Review Notes</h3>
-                          <Textarea 
-                            placeholder="Add notes about this copyright request..."
-                            className="min-h-[100px]"
-                            disabled={!canProcess}
-                            value={reviewNotes}
-                            onChange={(e) => setReviewNotes(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end space-x-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => openRejectDialog(copyright.id)}
-                        disabled={!canProcess}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Reject
-                      </Button>
-                      <Button 
-                        onClick={() => handleApprove(copyright.id)}
-                        disabled={!canProcess || !reviewNotes.trim()}
-                      >
-                        {isOfficer ? (
-                          <>
-                            <Fingerprint className="mr-2 h-4 w-4" />
-                            Verify Audio
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            Approve
-                          </>
-                        )}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-        
-        {isManager && (
-          <TabsContent value="escalated">
-            {escalatedRequests.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-10">
-                  <ShieldAlert className="h-12 w-12 text-gray-400 mb-3" />
-                  <p className="text-gray-500 text-center">No escalated copyright requests requiring manager review.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {escalatedRequests.map((pair) => {
-                  const { copyright, audio } = pair;
-                  
-                  return (
-                    <Card key={copyright.id} className="border-red-200">
-                      <CardHeader className="bg-red-50">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="flex items-center">
-                              <ShieldAlert className="mr-2 h-5 w-5 text-red-600" />
-                              Escalated Copyright Request
-                            </CardTitle>
-                            <CardDescription>
-                              Request ID: {copyright.id} | Escalated: {copyright.escalationDate ? new Date(copyright.escalationDate).toLocaleDateString() : 'N/A'}
-                            </CardDescription>
-                          </div>
-                          <Badge className="bg-red-100 text-red-800 border-red-200">
-                            Requires Manager Review
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-4">
-                        <div className="space-y-6">
-                          {copyright.escalationReason && (
-                            <Alert className="border-red-200 bg-red-50">
-                              <AlertTriangle className="h-4 w-4 text-red-600" />
-                              <AlertTitle>Escalation Reason</AlertTitle>
-                              <AlertDescription>
-                                {copyright.escalationReason}
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                          
-                          <div className="flex flex-col md:flex-row gap-6">
-                            <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
-                              {audio?.fileUrl ? (
-                                <audio controls src={audio.fileUrl} className="w-full">
-                                  Your browser does not support the audio tag.
-                                </audio>
-                              ) : (
-                                <Music className="h-16 w-16 text-gray-400" />
-                              )}
-                            </div>
-                            
-                            <div className="w-full md:w-2/3 space-y-4">
-                              <div>
-                                <h3 className="font-medium">Audio: {audio?.title || 'N/A'}</h3>
-                                <p className="text-gray-600 mt-1">
-                                  Description: {audio?.description || 'No description'}
-                                </p>
-                                <p className="text-gray-600 mt-1">
-                                  Artist ID: {audio?.artistId || copyright.artistId}
-                                </p>
-                              </div>
-                              
-                              {copyright.audioHash && (
-                                <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                                  <h3 className="text-sm font-medium text-gray-700 flex items-center">
-                                    <Hash className="h-4 w-4 mr-2" />
-                                    Audio Hash
-                                  </h3>
-                                  <p className="mt-1 text-sm text-gray-600 font-mono break-all">
-                                    {copyright.audioHash}
-                                  </p>
-                                </div>
-                              )}
-                              
-                              {copyright.similarAudios && copyright.similarAudios.length > 0 && (
-                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                                  <h3 className="text-sm font-medium text-amber-800">
-                                    Similar Content Detected
-                                  </h3>
-                                  <div className="mt-2 space-y-2">
-                                    {copyright.similarAudios.map(similar => (
-                                      <div key={similar.id} className="p-2 bg-white rounded border border-amber-100">
-                                        <p className="font-medium text-sm">{similar.title}</p>
-                                        <p className="text-xs text-gray-500">By {similar.artistName}</p>
-                                        <div className="flex items-center justify-between mt-1">
-                                          <span className="text-xs">Owner: {similar.ownerName}</span>
-                                          <Badge className="bg-amber-100 text-amber-800">
-                                            {similar.similarityScore}% Match
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              
-                              <div className="flex flex-wrap gap-2">
-                                <Button variant="outline" onClick={() => handlePlayAudio(copyright.audioId)}>
-                                  <PlayIcon className="mr-2 h-4 w-4" />
-                                  Listen to Audio
-                                </Button>
-                                
-                                {copyright.similarAudios && copyright.similarAudios[0] && (
-                                  <Button variant="outline" size="sm" className="bg-amber-50">
-                                    <PlayIcon className="mr-1 h-3 w-3" />
-                                    Listen to Similar
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <h3 className="font-medium">Manager Decision Notes</h3>
-                            <Textarea 
-                              placeholder="Add your decision notes as a manager..."
-                              className="min-h-[100px]"
-                              value={reviewNotes}
-                              onChange={(e) => setReviewNotes(e.target.value)}
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-end space-x-2">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => openRejectDialog(copyright.id)}
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Reject
-                        </Button>
-                        <Button 
-                          onClick={() => handleApprove(copyright.id)}
-                          disabled={!reviewNotes.trim()}
-                        >
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Approve & Publish
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
-        )}
-        
-        <TabsContent value="processed">
-          {processedRequests.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-10">
-                <Clock className="h-12 w-12 text-gray-400 mb-3" />
-                <p className="text-gray-500 text-center">No processed copyright requests.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {processedRequests.map((pair) => {
-                const { copyright, audio } = pair;
-                const isApproved = copyright.status === 'approved';
-                const missingAudio = !copyright.audioId || !audio || !audio.fileUrl;
-                
-                return (
-                  <Card key={copyright.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>Copyright Request</CardTitle>
-                          <CardDescription>
-                            Request ID: {copyright.id} | Processed: {copyright.reviewDate ? new Date(copyright.reviewDate).toLocaleDateString() : 'N/A'}
-                          </CardDescription>
-                        </div>
-                        <Badge className={isApproved 
-                          ? "bg-green-100 text-green-800 border-green-200" 
-                          : "bg-red-100 text-red-800 border-red-200"
-                        }>
-                          {isApproved ? 'Approved' : 'Rejected'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        {missingAudio && (
-                          <Alert variant="destructive">
-                            <AlertTitle>Missing Audio Data</AlertTitle>
-                            <AlertDescription>
-                              {(!copyright.audioId) ? (
-                                <>No <b>audioId</b> linked to this copyright request.<br/>Please check backend data integrity.</>
-                              ) : !audio ? (
-                                <>Audio with id <b>{copyright.audioId}</b> not found in audios list.<br/>Please check backend or upload process.</>
-                              ) : !audio.fileUrl ? (
-                                <>Audio file for <b>{audio.title || audio.id}</b> is missing a file URL. Please check backend storage/upload.</>
-                              ) : null}
-                              {audio && audio.fileUrl && (
-                                <div className="mt-2">
-                                  <span className="font-mono text-xs">fileUrl: {audio.fileUrl}</span>
-                                </div>
-                              )}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                        <div className="flex flex-col md:flex-row gap-6">
-                          <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
-                            {audio?.coverArt ? (
-                              <img src={audio.coverArt} alt={audio.title} className="h-full object-cover" />
-                            ) : (
-                              <Music className="h-16 w-16 text-gray-400" />
-                            )}
-                          </div>
-                          
-                          <div className="w-full md:w-2/3 space-y-4">
-                            <div>
-                              <h3 className="font-medium">Audio: {audio?.title}</h3>
                               <p className="text-gray-600 mt-1">
-                                Artist: {audio?.artistName}
+                                Audio File URL: {audio?.fileUrl}
                               </p>
                             </div>
                             
