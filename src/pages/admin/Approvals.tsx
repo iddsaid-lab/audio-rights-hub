@@ -27,7 +27,10 @@ const AdminApprovals = () => {
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = React.useState<typeof audios[0] | null>(null);
   const [rejectionReason, setRejectionReason] = React.useState('');
-  
+  const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false);
+  const [pendingPublishRequest, setPendingPublishRequest] = useState<any>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+
   const isManager = user?.role === 'manager';
   
   // Filter for copyright requests that have been paid but not yet approved or rejected
@@ -92,6 +95,36 @@ const AdminApprovals = () => {
     if (audio) {
       setSelectedAudio(audio);
       setIsPlayDialogOpen(true);
+    }
+  };
+
+  const handleManagerApproveAndRegister = (request: any, audio: any) => {
+    setPendingPublishRequest({ request, audio });
+    setIsPublishConfirmOpen(true);
+  };
+
+  const handlePublishConfirmed = async () => {
+    if (!pendingPublishRequest) return;
+    setIsPublishing(true);
+    try {
+      const { request, audio } = pendingPublishRequest;
+      const payload = {
+        artist: audio.artistWalletAddress || audio.artistId,
+        audioHash: audio.audioHash || audio.id.toString(),
+        expiryDate: request.expiryDate || null,
+        registeredAt: Math.floor(new Date(request.updatedAt || request.submissionDate).getTime() / 1000),
+        officials: request.processedBy || []
+      };
+      await ApiService.registerCopyrightOnBlockchain(payload);
+      toast({ title: 'Blockchain Registration Successful', description: 'Copyright registered on blockchain.' });
+      setIsPublishConfirmOpen(false);
+      setPendingPublishRequest(null);
+      // Optionally refresh copyright requests
+      ApiService.getAllCopyrights().then(setCopyrightRequests);
+    } catch (e: any) {
+      toast({ title: 'Blockchain Registration Failed', description: e.message || 'Failed to register on blockchain', variant: 'destructive' });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -211,7 +244,7 @@ const AdminApprovals = () => {
                     Reject
                   </Button>
                   <Button 
-                    onClick={() => handleApprove(request.id)}
+                    onClick={() => handleManagerApproveAndRegister(request, audio)}
                     disabled={!isManager}
                   >
                     <CheckCircle className="mr-2 h-4 w-4" />
@@ -341,6 +374,28 @@ const AdminApprovals = () => {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Manager Blockchain Publish Confirmation Dialog */}
+      <Dialog open={isPublishConfirmOpen} onOpenChange={setIsPublishConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve & Register Copyright</DialogTitle>
+            <DialogDescription>
+              This action will register the copyright on the blockchain. <b>This is irreversible.</b><br/>
+              Are you sure you want to proceed? Once registered, this copyright record cannot be changed or deleted.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            <Button variant="destructive" onClick={handlePublishConfirmed} disabled={isPublishing} className="mr-2">
+              {isPublishing ? 'Registering...' : 'Yes, Register on Blockchain'}
+            </Button>
+            <Button variant="outline" onClick={() => setIsPublishConfirmOpen(false)} disabled={isPublishing}>
+              Cancel
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

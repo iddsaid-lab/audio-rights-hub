@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import GeneratePaymentButton from './components/GeneratePaymentButton';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,6 +28,8 @@ import Play from '@/components/audio/Play';
 import AudioPlayer from '@/components/audio/AudioPlayer';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const AdminCopyrightRequests = () => {
   const { user } = useAuth();
@@ -57,6 +60,19 @@ const AdminCopyrightRequests = () => {
     similarityScore: number;
   }>>([]);
   
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const PAYMENT_METHODS = [
+    { label: 'M-Pesa', value: 'mpesa', number: '123456' },
+    { label: 'Bank Transfer', value: 'bank', number: '9876543210' },
+  ];
+  const [invoiceForm, setInvoiceForm] = useState({
+    copyrightRequestId: '',
+    amount: 50,
+    paymentMethod: PAYMENT_METHODS[0].value,
+    paymentNumber: PAYMENT_METHODS[0].number,
+  });
+  const [submittingInvoice, setSubmittingInvoice] = useState(false);
+
   const isOfficer = user?.role === 'officer';
   const isManager = user?.role === 'manager';
   const canProcess = isOfficer || isManager;
@@ -134,8 +150,7 @@ const AdminCopyrightRequests = () => {
       // Ensure full URL for audio file
       const audioFileUrl = audioMeta.fileUrl.startsWith('http') ? audioMeta.fileUrl : `http://localhost:4000${audioMeta.fileUrl}`;
       const fileName = audioMeta.fileUrl.split('/').pop() || 'audio.mp3';
-      const savedUser = localStorage.getItem('audioRightsUser');
-      const token = savedUser ? JSON.parse(savedUser).token : '';
+      const token = ApiService.getToken();
       const result = await ApiService.generateAudioHash(audioFileUrl, fileName, token);
       setHashGenerationProgress(100);
       setGeneratedHash(result.hash || result.audioHash || JSON.stringify(result));
@@ -163,8 +178,7 @@ const AdminCopyrightRequests = () => {
     try {
       setHashVerificationProgress(30);
       // Call the real API to check hash existence
-      const savedUser = localStorage.getItem('audioRightsUser');
-      const token = savedUser ? JSON.parse(savedUser).token : '';
+      const token = ApiService.getToken();
       const { exists } = await ApiService.checkHashExistsInBlockchain(generatedHash, token);
       setHashVerificationProgress(100);
       setHashMatchFound(exists);
@@ -194,8 +208,7 @@ const AdminCopyrightRequests = () => {
   const handleEscalateToManager = async () => {
     if (!selectedRequestId || !escalationReason) return;
     try {
-      const savedUser = localStorage.getItem('audioRightsUser');
-      const token = savedUser ? JSON.parse(savedUser).token : '';
+      const token = ApiService.getToken();
       await ApiService.escalateCopyrightRequest(Number(selectedRequestId), escalationReason, token);
       toast({
         title: "Request Escalated",
@@ -286,12 +299,62 @@ const AdminCopyrightRequests = () => {
     return null;
   };
 
+  const openInvoiceDialog = (requestId: string, amount: number) => {
+    const defaultMethod = PAYMENT_METHODS[0];
+    setInvoiceForm({
+      copyrightRequestId: requestId,
+      amount: amount,
+      paymentMethod: defaultMethod.value,
+      paymentNumber: defaultMethod.number,
+    });
+    setIsInvoiceDialogOpen(true);
+  };
+
+  const handleInvoiceFormChange = (field: string, value: any) => {
+    if (field === 'paymentMethod') {
+      const method = PAYMENT_METHODS.find(m => m.value === value);
+      setInvoiceForm(form => ({ ...form, paymentMethod: value, paymentNumber: method?.number || '' }));
+    } else {
+      setInvoiceForm(form => ({ ...form, [field]: value }));
+    }
+  };
+
+  const handleInvoiceSubmit = async () => {
+    setSubmittingInvoice(true);
+    try {
+      await ApiService.createPayment({
+        copyrightRequestId: invoiceForm.copyrightRequestId,
+        amount: invoiceForm.amount,
+        paymentMethod: invoiceForm.paymentMethod,
+        paymentNumber: invoiceForm.paymentNumber
+      }, ApiService.getToken());
+      setIsInvoiceDialogOpen(false);
+      toast({ title: 'Invoice Created', description: 'Payment invoice generated for artist.' });
+      // TODO: Refresh copyright requests/payments if needed
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to create invoice', variant: 'destructive' });
+    } finally {
+      setSubmittingInvoice(false);
+    }
+  };
 
   const handlePlayAudio = (audioId: string) => {
     const audio = getAudio(audioId);
     if (audio) {
       setSelectedAudio(audio);
       setIsPlayDialogOpen(true);
+    }
+  };
+
+  const handleApprovePayment = async (copyrightRequestId: number) => {
+    try {
+      await ApiService.approveCopyrightPayment(copyrightRequestId);
+      toast({ title: 'Payment Approved', description: 'Copyright payment marked as paid.' });
+      // Refresh copyright requests
+      const pairs = await ApiService.getAllCopyrightsWithAudio();
+      setCopyrightAudioPairs(pairs);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || 'Failed to approve payment', variant: 'destructive' });
     }
   };
 
@@ -324,7 +387,6 @@ const AdminCopyrightRequests = () => {
       <Tabs defaultValue="pending">
         <TabsList className="mb-4">
           <TabsTrigger value="pending">Pending ({pendingRequests.length})</TabsTrigger>
-
           <TabsTrigger value="processed">Processed ({processedRequests.length})</TabsTrigger>
         </TabsList>
         
@@ -354,80 +416,95 @@ const AdminCopyrightRequests = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-  <div className="space-y-6">
-    <div className="flex flex-col md:flex-row gap-6">
-      <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
-        <Music className="h-16 w-16 text-gray-400" />
-      </div>
-      <div className="w-full md:w-2/3 space-y-4">
-        <div>
-          <h3 className="font-medium">Audio Title: {audio?.title}</h3>
-          <p className="text-gray-600 mt-1">
-            Audio File URL: {audio?.fileUrl}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Audio ID</h3>
-            <p className="mt-1">{audio?.id}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Copyright ID</h3>
-            <p className="mt-1">{copyright?.id}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Copyright Status</h3>
-            <p className="mt-1">{copyright?.status}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Audio File URL</h3>
-            <p className="mt-1">{audio?.fileUrl}</p>
-          </div>
-        </div>
-        <Button variant="outline" onClick={() => handlePlayAudio(audio?.id)}>
-          <PlayIcon className="mr-2 h-4 w-4" />
-          Listen to Audio
-        </Button>
-      </div>
-    </div>
-    <div className="space-y-2">
-      <h3 className="font-medium">Review Notes</h3>
-      <Textarea 
-        placeholder="Add notes about this copyright request..."
-        className="min-h-[100px]"
-        disabled={!canProcess}
-        value={reviewNotes}
-        onChange={(e) => setReviewNotes(e.target.value)}
-      />
-    </div>
-  </div>
-</CardContent>
-<CardFooter className="flex justify-end space-x-2">
-  <Button 
-    variant="outline" 
-    onClick={() => openRejectDialog(copyright.id)}
-    disabled={!canProcess}
-  >
-    <XCircle className="mr-2 h-4 w-4" />
-    Reject
-  </Button>
-  <Button 
-    onClick={() => handleApprove(copyright.id)}
-    disabled={copyright.paymentStatus !== 'paid' || !reviewNotes.trim()}
-  >
-    {isOfficer ? (
-      <>
-        <Fingerprint className="mr-2 h-4 w-4" />
-        Verify Audio
-      </>
-    ) : (
-      <>
-        <CheckCircle className="mr-2 h-4 w-4" />
-        Approve
-      </>
-    )}
-  </Button>
-</CardFooter>
+                    <div className="space-y-6">
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="rounded-md flex items-center justify-center bg-gray-100 h-40 w-full md:w-1/3">
+                          <Music className="h-16 w-16 text-gray-400" />
+                        </div>
+                        <div className="w-full md:w-2/3 space-y-4">
+                          <div>
+                            <h3 className="font-medium">Audio Title: {audio?.title}</h3>
+                            <p className="text-gray-600 mt-1">
+                              Audio File URL: {audio?.fileUrl}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500">Audio ID</h3>
+                              <p className="mt-1">{audio?.id}</p>
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500">Copyright ID</h3>
+                              <p className="mt-1">{copyright?.id}</p>
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500">Copyright Status</h3>
+                              <p className="mt-1">{copyright?.status}</p>
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500">Audio File URL</h3>
+                              <p className="mt-1">{audio?.fileUrl}</p>
+                            </div>
+                          </div>
+                          <Button variant="outline" onClick={() => handlePlayAudio(audio?.id)}>
+                            <PlayIcon className="mr-2 h-4 w-4" />
+                            Listen to Audio
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Review Notes</h3>
+                        <Textarea 
+                          placeholder="Add notes about this copyright request..."
+                          className="min-h-[100px]"
+                          disabled={!canProcess}
+                          value={reviewNotes}
+                          onChange={(e) => setReviewNotes(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2">
+                    {user?.role === 'cashier' && !copyright.hasPayment && (
+                      <Button onClick={() => openInvoiceDialog(copyright.id, 50)}>
+                        Generate Invoice
+                      </Button>
+                    )}
+                    {user?.role === 'cashier' && copyright.hasPayment && (
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        Payment Made
+                      </Badge>
+                    )}
+                    {['cashier', 'admin'].includes(user?.role) && copyright.paymentStatus !== 'paid' && (
+                      <Button onClick={() => handleApprovePayment(copyright.id)}>
+                        Approve Payment
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      onClick={() => openRejectDialog(copyright.id)}
+                      disabled={!canProcess}
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Reject
+                    </Button>
+                    <Button 
+                      onClick={() => handleApprove(copyright.id)}
+                      disabled={copyright.paymentStatus !== 'paid' || !reviewNotes.trim()}
+                    >
+                      {isOfficer ? (
+                        <>
+                          <Fingerprint className="mr-2 h-4 w-4" />
+                          Verify Audio
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Approve
+                        </>
+                      )}
+                    </Button>
+                  </CardFooter>
                 </Card>
               ))}
             </div>
@@ -453,18 +530,18 @@ const AdminCopyrightRequests = () => {
                         <div>
                           <CardTitle>Copyright Request</CardTitle>
                           <CardDescription>
-  Request ID: {copyright.id} | Processed: {copyright.reviewDate ? new Date(copyright.reviewDate).toLocaleDateString() : 'N/A'}
-</CardDescription>
+                            Request ID: {copyright.id} | Processed: {copyright.reviewDate ? new Date(copyright.reviewDate).toLocaleDateString() : 'N/A'}
+                          </CardDescription>
                         </div>
                         <Badge className={
-  copyright.status === 'processed' ? "bg-blue-100 text-blue-800 border-blue-200"
-  : copyright.status === 'verified' ? "bg-green-100 text-green-800 border-green-200"
-  : copyright.status === 'rejected' ? "bg-red-100 text-red-800 border-red-200"
-  : copyright.status === 'completed' ? "bg-purple-100 text-purple-800 border-purple-200"
-  : "bg-gray-100 text-gray-800 border-gray-200"
-}>
-  {copyright.status.charAt(0).toUpperCase() + copyright.status.slice(1)}
-</Badge>
+                          copyright.status === 'processed' ? "bg-blue-100 text-blue-800 border-blue-200"
+                          : copyright.status === 'verified' ? "bg-green-100 text-green-800 border-green-200"
+                          : copyright.status === 'rejected' ? "bg-red-100 text-red-800 border-red-200"
+                          : copyright.status === 'completed' ? "bg-purple-100 text-purple-800 border-purple-200"
+                          : "bg-gray-100 text-gray-800 border-gray-200"
+                        }>
+                          {copyright.status.charAt(0).toUpperCase() + copyright.status.slice(1)}
+                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -497,6 +574,11 @@ const AdminCopyrightRequests = () => {
                               <div>
                                 <h3 className="text-sm font-medium text-gray-500">Payment Status</h3>
                                 <p className="mt-1 capitalize">{copyright.paymentStatus}</p>
+                                {['cashier', 'admin'].includes(user?.role) && copyright.paymentStatus !== 'paid' && (
+                                  <Button className="mt-2" onClick={() => handleApprovePayment(copyright.id)}>
+                                    Approve Payment
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             
@@ -941,6 +1023,41 @@ const AdminCopyrightRequests = () => {
               disabled={!blockchainAddress || !canPublishToBlockchain}
             >
               Confirm & Approve Copyright
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Dialog */}
+      <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generate Payment Invoice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium">Amount</label>
+              <Input type="number" value={invoiceForm.amount} onChange={e => handleInvoiceFormChange('amount', e.target.value)} />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Payment Method</label>
+              <Select value={invoiceForm.paymentMethod} onValueChange={val => handleInvoiceFormChange('paymentMethod', val)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_METHODS.map(method => (
+                    <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Payment Number</label>
+              <Input value={invoiceForm.paymentNumber} disabled />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleInvoiceSubmit} disabled={submittingInvoice || !invoiceForm.paymentNumber}>
+              {submittingInvoice ? 'Submitting...' : 'Create Invoice'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -135,14 +134,16 @@ const AppSidebar: React.FC = () => {
             )}
             
             {/* All admin roles can view audios */}
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive(`${basePath}/audios`)}>
-                <Link to={`${basePath}/audios`}>
-                  <Music size={18} />
-                  <span>Audios</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {user.role !== 'cashier' && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive(`${basePath}/audios`)}>
+                  <Link to={`${basePath}/audios`}>
+                    <Music size={18} />
+                    <span>Audios</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             
             {/* Only cashiers can access payments */}
             {hasRole('cashier') && (
@@ -187,17 +188,15 @@ const AppSidebar: React.FC = () => {
               </SidebarMenuItem>
             )}
             
-            {/* Officers and Managers can handle copyright requests */}
-            {hasAnyRole(['manager', 'officer']) && (
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive(`${basePath}/copyright-requests`)}>
-                  <Link to={`${basePath}/copyright-requests`}>
-                    <Bell size={18} />
-                    <span>Copyright Requests</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
+            {/* Copyright Requests for all admin roles (including cashier) */}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive(`${basePath}/copyright-requests`)}>
+                <Link to={`${basePath}/copyright-requests`}>
+                  <Bell size={18} />
+                  <span>Copyright Requests</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

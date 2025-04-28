@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -40,6 +39,7 @@ import AdminCopyrightRequests from "./pages/admin/CopyrightRequests";
 import AdminSettings from "./pages/admin/Settings";
 import AdminPayments from "./pages/admin/Payments";
 import AdminApprovals from "./pages/admin/Approvals";
+import UserManagement from "./pages/admin/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +83,7 @@ function App() {
               <Route path="/admin/verifications" element={<AppLayout><AdminVerifications /></AppLayout>} />
               <Route path="/admin/payments" element={<AppLayout><AdminPayments /></AppLayout>} />
               <Route path="/admin/settings" element={<AppLayout><AdminSettings /></AppLayout>} />
+              <Route path="/admin/user-management" element={<AppLayout><UserManagement /></AppLayout>} />
               
               <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
             </Routes>

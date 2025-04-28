@@ -226,6 +226,17 @@ const AdminDashboard = () => {
           </div>
         </CardContent>
       </Card>
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>User Management</CardTitle>
+          <CardDescription>Add and manage official users (officers, cashiers, managers).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <a href="/admin/user-management">Go to User Management</a>
+          </Button>
+        </CardContent>
+      </Card>
     </>
   );
   

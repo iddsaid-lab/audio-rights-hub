@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,8 @@ import ApiService from '../../services/ApiService';
 import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, CreditCard, FileText, Clock, AlertCircle } from 'lucide-react';
+import { BadgeDollarSign, Banknote, AlertCircle, Clock } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 const ArtistPayments = () => {
   const { user } = useAuth();
@@ -15,14 +15,96 @@ const ArtistPayments = () => {
   // Fetch payment records for the current artist from backend
   const [artistPayments, setArtistPayments] = useState<any[]>([]);
   useEffect(() => {
+    if (!user?.id) return;
     ApiService.getPayments().then((data) => {
       setArtistPayments(data.filter((req: any) => req.artistId === user?.id));
     });
   }, [user?.id]);
 
-  const pendingPayments = artistPayments.filter(req => req.paymentStatus === 'pending');
-  const completedPayments = artistPayments.filter(req => req.paymentStatus !== 'pending');
+  // --- Add state for invoices ---
+  const [artistInvoices, setArtistInvoices] = useState<any[]>([]);
+  useEffect(() => {
+    if (!user?.id) return;
+    ApiService.getInvoicesByArtist(Number(user.id), ApiService.getToken())
+      .then(setArtistInvoices)
+      .catch(() => setArtistInvoices([]));
+  }, [user?.id]);
+
+  // --- Add state for copyrights with invoices ---
+  const [artistCopyrights, setArtistCopyrights] = useState<any[]>([]);
+  useEffect(() => {
+    if (!user?.id) return;
+    ApiService.getMyCopyrights().then(setArtistCopyrights);
+  }, [user?.id]);
+
+  // --- Fetch and filter artist's payments by their copyrights ---
+  useEffect(() => {
+    if (!user?.id || artistCopyrights.length === 0) return;
+    ApiService.getPayments().then((data) => {
+      setArtistPayments(
+        data.filter((p: any) =>
+          artistCopyrights.some((c: any) => c.id === p.copyrightRequestId)
+        )
+      );
+    });
+  }, [user?.id, artistCopyrights]);
+
+  // Filter: only show invoices for copyrights that exist for this artist
+  const copyrightsWithInvoices = artistCopyrights.filter(c =>
+    artistInvoices.some(inv => inv.copyrightRequestId === c.id)
+  );
+  const invoicesForCopyrights = artistInvoices.filter(inv =>
+    copyrightsWithInvoices.some(c => c.id === inv.copyrightRequestId)
+  );
+
+  const pendingPayments = artistPayments.filter(req => req.status === 'pending');
+  const completedPayments = artistPayments.filter(req => req.status !== 'pending');
   
+  const [referenceInputs, setReferenceInputs] = useState<{[id: number]: string}>({});
+  const [submitting, setSubmitting] = useState<{[id: number]: boolean}>({});
+
+  const handleReferenceChange = (id: number, value: string) => {
+    setReferenceInputs(inputs => ({ ...inputs, [id]: value }));
+  };
+  const handleReferenceSubmit = async (paymentId: number) => {
+    setSubmitting(sub => ({ ...sub, [paymentId]: true }));
+    try {
+      await ApiService.submitPaymentReference(paymentId, referenceInputs[paymentId], ApiService.getToken());
+      // Refresh payments after submission
+      const data = await ApiService.getPayments();
+      setArtistPayments(
+        data.filter((p: any) =>
+          artistCopyrights.some((c: any) => c.id === p.copyrightRequestId)
+        )
+      );
+      setReferenceInputs(inputs => ({ ...inputs, [paymentId]: '' }));
+    } catch (e) {
+      alert('Failed to submit payment reference.');
+    } finally {
+      setSubmitting(sub => ({ ...sub, [paymentId]: false }));
+    }
+  };
+
+  // --- Payment status helpers ---
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Pending Payment';
+      case 'awaiting_verification': return 'Awaiting Verification';
+      case 'paid': return 'Paid';
+      case 'rejected': return 'Rejected';
+      default: return status;
+    }
+  };
+  const statusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-amber-100 text-amber-800 border-amber-200';
+      case 'awaiting_verification': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'paid': return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -32,12 +114,54 @@ const ArtistPayments = () => {
         </div>
       </div>
       
-      <Tabs defaultValue="pending">
+      <Tabs defaultValue="invoices">
         <TabsList className="mb-4">
-          <TabsTrigger value="pending">Pending ({pendingPayments.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completedPayments.length})</TabsTrigger>
+          <TabsTrigger value="invoices">
+            <Banknote className="inline mr-1 h-4 w-4" /> Invoices ({invoicesForCopyrights.length})
+          </TabsTrigger>
+          <TabsTrigger value="pending">
+            <BadgeDollarSign className="inline mr-1 h-4 w-4" /> Pending Payments ({pendingPayments.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            <Clock className="inline mr-1 h-4 w-4" /> Completed ({completedPayments.length})
+          </TabsTrigger>
         </TabsList>
-        
+
+        {/* --- INVOICES TAB --- */}
+        <TabsContent value="invoices">
+          {invoicesForCopyrights.length > 0 ? (
+            <div className="space-y-6">
+              {invoicesForCopyrights.map((invoice) => (
+                <Card key={invoice.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle>Invoice</CardTitle>
+                        <CardDescription>
+                          <span className="font-semibold">Request ID:</span> {invoice.copyrightRequestId}<br/>
+                          <span className="font-semibold">Amount:</span> ${invoice.amount}<br/>
+                          <span className="font-semibold">Payment Method:</span> {invoice.paymentMethod || 'N/A'}<br/>
+                          <span className="font-semibold">Payment Number:</span> <span className="font-mono">{invoice.paymentNumber || 'N/A'}</span><br/>
+                          <span className="font-semibold">Status:</span> {invoice.status}<br/>
+                        </CardDescription>
+                      </div>
+                      <Badge className={statusColor(invoice.status)}>{statusLabel(invoice.status)}</Badge>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <Banknote className="h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-gray-500 text-center">No invoices for your copyrights yet.</p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* --- PENDING PAYMENTS TAB --- */}
         <TabsContent value="pending">
           {pendingPayments.length > 0 ? (
             <div className="space-y-6">
@@ -46,57 +170,41 @@ const ArtistPayments = () => {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle>Copyright Registration Fee</CardTitle>
+                        <CardTitle>Invoice for Copyright Registration</CardTitle>
                         <CardDescription>
-                          Request ID: {payment.id.substring(0, 8)} | Submitted: {new Date(payment.submissionDate).toLocaleDateString()}
+                          <span className="font-semibold">Request ID:</span> {payment.copyrightRequestId}<br/>
+                          <span className="font-semibold">Amount:</span> ${payment.amount}<br/>
+                          <span className="font-semibold">Payment Method:</span> {payment.paymentMethod}<br/>
+                          <span className="font-semibold">Payment Number:</span> <span className="font-mono">{payment.paymentNumber}</span>
                         </CardDescription>
                       </div>
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-                        Payment Pending
-                      </Badge>
+                      <Badge className={statusColor(payment.status)}>{statusLabel(payment.status)}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <h3 className="font-medium">Audio ID: {payment.audioId}</h3>
-                        </div>
-                        <div className="flex items-center space-x-2 mt-2 md:mt-0">
-                          <DollarSign className="h-5 w-5 text-green-600" />
-                          <span className="font-medium text-green-600">Fee: $50</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col space-y-4">
-                        <h3 className="font-medium">Payment Options</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="border rounded-md p-4 flex items-center space-x-3">
-                            <CreditCard className="h-5 w-5 text-gray-500" />
-                            <div>
-                              <h4 className="font-medium">Credit Card</h4>
-                              <p className="text-sm text-gray-500">Pay securely online</p>
-                            </div>
-                          </div>
-                          <div className="border rounded-md p-4 flex items-center space-x-3">
-                            <FileText className="h-5 w-5 text-gray-500" />
-                            <div>
-                              <h4 className="font-medium">Bank Transfer</h4>
-                              <p className="text-sm text-gray-500">Pay via bank transfer</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <Button className="w-full md:w-auto md:self-end">
-                          <DollarSign className="mr-2 h-4 w-4" />
-                          Make Payment
+                      <div className="mt-4">
+                        <label className="block font-medium mb-1">Enter Payment Confirmation/Reference</label>
+                        <Input
+                          type="text"
+                          className="border rounded px-3 py-2 w-full md:w-1/2"
+                          placeholder="e.g. M-Pesa transaction code, bank ref"
+                          value={referenceInputs[payment.id] || ''}
+                          onChange={e => handleReferenceChange(payment.id, e.target.value)}
+                          disabled={submitting[payment.id]}
+                        />
+                        <Button
+                          className="mt-2"
+                          onClick={() => handleReferenceSubmit(payment.id)}
+                          disabled={!referenceInputs[payment.id] || submitting[payment.id]}
+                        >
+                          Submit Confirmation
                         </Button>
                       </div>
-                      
                       <div className="flex items-center p-4 bg-blue-50 text-blue-800 rounded-md border border-blue-200">
                         <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
                         <p className="text-sm">
-                          Your copyright will be processed after payment is confirmed. The processing typically takes 3-5 business days.
+                          Please pay using the above payment details and submit your confirmation code here. Your copyright will be processed after payment is confirmed by the cashier.
                         </p>
                       </div>
                     </div>
@@ -107,13 +215,14 @@ const ArtistPayments = () => {
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
-                <DollarSign className="h-12 w-12 text-gray-400 mb-3" />
+                <BadgeDollarSign className="h-12 w-12 text-gray-400 mb-3" />
                 <p className="text-gray-500 text-center">No pending payments.</p>
               </CardContent>
             </Card>
           )}
         </TabsContent>
-        
+
+        {/* --- COMPLETED PAYMENTS TAB --- */}
         <TabsContent value="completed">
           {completedPayments.length > 0 ? (
             <div className="space-y-6">
@@ -122,45 +231,18 @@ const ArtistPayments = () => {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle>Copyright Registration Fee</CardTitle>
+                        <CardTitle>Copyright Payment</CardTitle>
                         <CardDescription>
-                          Request ID: {payment.id.substring(0, 8)} | Completed: {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'N/A'}
+                          <span className="font-semibold">Request ID:</span> {payment.copyrightRequestId}<br/>
+                          <span className="font-semibold">Amount:</span> ${payment.amount}<br/>
+                          <span className="font-semibold">Payment Method:</span> {payment.paymentMethod}<br/>
+                          <span className="font-semibold">Payment Number:</span> <span className="font-mono">{payment.paymentNumber}</span><br/>
+                          <span className="font-semibold">Your Confirmation:</span> <span className="font-mono">{payment.paymentReference || 'N/A'}</span>
                         </CardDescription>
                       </div>
-                      <Badge className={payment.paymentStatus === 'paid' 
-                        ? "bg-green-100 text-green-800 border-green-200" 
-                        : "bg-blue-100 text-blue-800 border-blue-200"
-                      }>
-                        {payment.paymentStatus === 'paid' ? 'Paid' : 'Waived'}
-                      </Badge>
+                      <Badge className={statusColor(payment.status)}>{statusLabel(payment.status)}</Badge>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                          <h3 className="font-medium">Audio ID: {payment.audioId}</h3>
-                        </div>
-                        {payment.paymentStatus === 'paid' && payment.paymentAmount && (
-                          <div className="flex items-center space-x-2 mt-2 md:mt-0">
-                            <DollarSign className="h-5 w-5 text-green-600" />
-                            <span className="font-medium text-green-600">Amount: ${payment.paymentAmount}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium">Payment Method</h3>
-                          <p className="text-gray-600">{payment.paymentStatus === 'paid' ? 'Credit Card' : 'Fee Waived'}</p>
-                        </div>
-                        <Button variant="outline">
-                          <FileText className="mr-2 h-4 w-4" />
-                          Receipt
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -168,7 +250,7 @@ const ArtistPayments = () => {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-10">
                 <Clock className="h-12 w-12 text-gray-400 mb-3" />
-                <p className="text-gray-500 text-center">No completed payments yet.</p>
+                <p className="text-gray-500 text-center">No completed payments.</p>
               </CardContent>
             </Card>
           )}

@@ -108,6 +108,28 @@ export class ApiService {
     return await res.json();
   }
 
+  static async approveCopyrightPayment(copyrightRequestId: number, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/copyrights/approve-payment/${copyrightRequestId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to approve copyright payment');
+    return await res.json();
+  }
+
+  // Register copyright on blockchain via backend endpoint
+  static async registerCopyrightOnBlockchain(payload: any, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/blockchain/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Blockchain registration failed');
+    return await res.json();
+  }
+
   // --- BLOCKCHAIN ---
   /**
    * Checks if a hash exists in the blockchain.
@@ -126,6 +148,14 @@ export class ApiService {
   }
 
   // --- INVOICES ---
+  static async getAllInvoices(token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/invoices/`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch invoices');
+    return await res.json();
+  }
   static async createInvoice(data: any, token?: string) {
     token = ApiService.getToken(token);
     const res = await fetch(`${API_BASE}/invoices/`, {
@@ -139,6 +169,14 @@ export class ApiService {
   static async getInvoicesByArtist(artistId: number, token?: string) {
     token = ApiService.getToken(token);
     const res = await fetch(`${API_BASE}/invoices/artist/${artistId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch invoices');
+    return await res.json();
+  }
+  static async getInvoicesByArtistAndCopyright(artistId: number, copyrightRequestId: number, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/invoices/by-artist-and-copyright?artistId=${artistId}&copyrightRequestId=${copyrightRequestId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Failed to fetch invoices');
@@ -158,13 +196,13 @@ export class ApiService {
   // --- PAYMENTS ---
   static async getPayments(token?: string) {
     token = ApiService.getToken(token);
-    const res = await fetch(`${API_BASE}/payments/`, { headers: { 'Authorization': `Bearer ${token}` } });
+    const res = await fetch(`${API_BASE}/payments/all`, { headers: { 'Authorization': `Bearer ${token}` } });
     if (!res.ok) throw new Error('Failed to fetch payments');
     return await res.json();
   }
   static async createPayment(data: any, token?: string) {
     token = ApiService.getToken(token);
-    const res = await fetch(`${API_BASE}/payments/`, {
+    const res = await fetch(`${API_BASE}/payments/create`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
       body: JSON.stringify(data)
@@ -179,6 +217,27 @@ export class ApiService {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!res.ok) throw new Error('Approve payment failed');
+    return await res.json();
+  }
+  static async submitPaymentReference(paymentId: number, paymentReference: string, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/payments/${paymentId}/submit-reference`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+      body: JSON.stringify({ paymentReference })
+    });
+    if (!res.ok) throw new Error('Submit payment reference failed');
+    return await res.json();
+  }
+
+  static async reviewPayment(paymentId: number, action: 'approve' | 'reject', token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/payments/${paymentId}/review`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+      body: JSON.stringify({ action })
+    });
+    if (!res.ok) throw new Error('Review payment failed');
     return await res.json();
   }
 
@@ -246,9 +305,17 @@ export class ApiService {
     return await res.json();
   }
 
-
-
-
+  // Register official user via /api/admin/create-user
+  static async createOfficialUser(data: { fullName: string; email: string; password: string; role: string }, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/admin/create-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to create official user');
+    return await res.json();
+  }
 
   static async getMyProfile(token?: string) {
     token = ApiService.getToken(token);
@@ -258,8 +325,6 @@ export class ApiService {
     if (!res.ok) throw new Error('Failed to fetch your profile');
     return await res.json();
   }
-
-
 
   static async getAllVerificationRequests(token?: string) {
     token = ApiService.getToken(token);
@@ -289,6 +354,16 @@ export class ApiService {
       body: JSON.stringify({ escalationNote })
     });
     if (!res.ok) throw new Error('Failed to escalate request');
+    return await res.json();
+  }
+
+  // Get all official users (managers, officers, cashiers)
+  static async getAllOfficials(token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/admin/officials`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch official users');
     return await res.json();
   }
 }
