@@ -107,15 +107,43 @@ const AdminApprovals = () => {
     if (!pendingPublishRequest) return;
     setIsPublishing(true);
     try {
-      const { request, audio } = pendingPublishRequest;
+      const { request } = pendingPublishRequest;
+      // 1. Fetch full copyright, audio, artist, artistProfile details from new endpoint
+      const detailsArr = await ApiService.getCopyrightDetailsById(request.id);
+      const details = Array.isArray(detailsArr) ? detailsArr[0] : detailsArr;
+      if (!details) throw new Error("Failed to fetch copyright details");
+
+
+      const now = Math.floor(Date.now() / 1000); 
+      const fiftyYears = now + (50 * 365 * 24 * 60 * 60);
+  
+      // 2. Prepare payload for blockchain registration using fetched details
       const payload = {
-        artist: audio.artistWalletAddress || audio.artistId,
-        audioHash: audio.audioHash || audio.id.toString(),
-        expiryDate: request.expiryDate || null,
-        registeredAt: Math.floor(new Date(request.updatedAt || request.submissionDate).getTime() / 1000),
-        officials: request.processedBy || []
+        artist: details.artist.walletAddress || details.artist.id,
+        audioHash: details.audio.hash || details.audio.id.toString(),
+        expiryDate: fiftyYears,
+        registeredAt: Math.floor(new Date(details.copyright.updatedAt || details.copyright.createdAt).getTime() / 1000),
+        officials: Array.isArray(details.copyright.processedBy)
+        ? details.copyright.processedBy
+        : (typeof details.copyright.processedBy === 'string'
+            ? JSON.parse(details.copyright.processedBy || '[]')
+            : []),
       };
-      await ApiService.registerCopyrightOnBlockchain(payload);
+
+      console.log(payload);
+  
+      // 3. Register on blockchain
+     const result = await ApiService.registerCopyrightOnBlockchain(payload);
+      let txHash = '';
+      let status = '';
+      if (Array.isArray(result) && result.length > 0) {
+        txHash = result[0].txHash;
+        status = result[0].status;
+      } else if (result && result.txHash) {
+        txHash = result.txHash;
+        status = result.status;
+      }
+  
       toast({ title: 'Blockchain Registration Successful', description: 'Copyright registered on blockchain.' });
       setIsPublishConfirmOpen(false);
       setPendingPublishRequest(null);

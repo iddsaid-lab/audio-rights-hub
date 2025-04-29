@@ -152,8 +152,11 @@ const AdminCopyrightRequests = () => {
       const fileName = audioMeta.fileUrl.split('/').pop() || 'audio.mp3';
       const token = ApiService.getToken();
       const result = await ApiService.generateAudioHash(audioFileUrl, fileName, token);
+      
+      // console.log(audioMeta)
       setHashGenerationProgress(100);
       setGeneratedHash(result.hash || result.audioHash || JSON.stringify(result));
+      await ApiService.updateAudioHash(audioMeta.id,result.hash || result.audioHash || JSON.stringify(result));
       toast({
         title: "Hash Generated",
         description: "Audio hash has been successfully generated using AI.",

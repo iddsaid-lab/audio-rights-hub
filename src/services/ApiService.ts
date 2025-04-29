@@ -85,6 +85,15 @@ export class ApiService {
     return await res.json();
   }
 
+  static async getCopyrightDetailsById(id: number | string, token?: string) {
+    token = ApiService.getToken(token);
+    const res = await fetch(`${API_BASE}/copyrights/details/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Failed to fetch copyright details');
+    return await res.json();
+  }
+
   static async getMyCopyrights(token?: string) {
     token = ApiService.getToken(token);
     const res = await fetch(`${API_BASE}/copyrights/my`, {
@@ -119,15 +128,26 @@ export class ApiService {
   }
 
   // Register copyright on blockchain via backend endpoint
-  static async registerCopyrightOnBlockchain(payload: any, token?: string) {
-    token = ApiService.getToken(token);
+  static async registerCopyrightOnBlockchain(payload: any) {
+    const token = ApiService.getToken();
     const res = await fetch(`${API_BASE}/blockchain/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error((await res.json()).error || 'Blockchain registration failed');
-    return await res.json();
+    if (!res.ok) {
+      let errorMsg = 'Blockchain registration failed';
+      try {
+        const err = await res.json();
+        errorMsg = err.error || errorMsg;
+      } catch {}
+      throw new Error(errorMsg);
+    }
+    try {
+      return await res.json();
+    } catch {
+      return {};
+    }
   }
 
   // --- BLOCKCHAIN ---
@@ -281,6 +301,27 @@ export class ApiService {
       body: JSON.stringify({ audioUrl })
     });
     if (!res.ok) throw new Error('AI analysis failed');
+    return await res.json();
+  }
+
+  static async updateAudioHash(id: number | string, hash: string) {
+    const token = ApiService.getToken();
+    const res = await fetch(`${API_BASE}/audios/update-hash`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ id, hash })
+    });
+    if (!res.ok) {
+      let errorMsg = 'Failed to update audio hash';
+      try {
+        const err = await res.json();
+        errorMsg = err.error || errorMsg;
+      } catch {}
+      throw new Error(errorMsg);
+    }
     return await res.json();
   }
 
